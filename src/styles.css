@@ -72,8 +72,8 @@ button { color: inherit; }
 .topbar .play-button { color: #c9f3c9; border-color: #4f7650; }
 
 .canvas {
-  position: relative;
-  inset: 48px 0 0;
+  position: fixed;
+  inset: 48px 0 0 0;
   overflow: hidden;
   background-color: #0a0f0a;
   background-image:
