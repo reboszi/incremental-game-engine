@@ -5,9 +5,87 @@ type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
 type WindowId = 'toolbox' | 'project' | 'inspector'
 
+const PANEL_SLOTS = [
+  {
+    value: 'top',
+    label: 'Top',
+    rowStart: 1,
+    rowSpan: 1,
+    columnStart: 1,
+    columnSpan: 5,
+  },
+  {
+    value: 'top-inner',
+    label: 'Top Inner',
+    rowStart: 2,
+    rowSpan: 1,
+    columnStart: 2,
+    columnSpan: 3,
+  },
+  {
+    value: 'left-outer',
+    label: 'Left Outer',
+    rowStart: 2,
+    rowSpan: 3,
+    columnStart: 1,
+    columnSpan: 1,
+  },
+  {
+    value: 'left-inner',
+    label: 'Left Inner',
+    rowStart: 3,
+    rowSpan: 1,
+    columnStart: 2,
+    columnSpan: 1,
+  },
+  {
+    value: 'center',
+    label: 'Center',
+    rowStart: 3,
+    rowSpan: 1,
+    columnStart: 3,
+    columnSpan: 1,
+  },
+  {
+    value: 'right-inner',
+    label: 'Right Inner',
+    rowStart: 3,
+    rowSpan: 1,
+    columnStart: 4,
+    columnSpan: 1,
+  },
+  {
+    value: 'right-outer',
+    label: 'Right Outer',
+    rowStart: 2,
+    rowSpan: 3,
+    columnStart: 5,
+    columnSpan: 1,
+  },
+  {
+    value: 'bottom-inner',
+    label: 'Bottom Inner',
+    rowStart: 4,
+    rowSpan: 1,
+    columnStart: 2,
+    columnSpan: 3,
+  },
+  {
+    value: 'bottom',
+    label: 'Bottom',
+    rowStart: 5,
+    rowSpan: 1,
+    columnStart: 2,
+    columnSpan: 3,
+  },
+] as const
+
+type PanelSlot = typeof PANEL_SLOTS[number]['value']
+
 type Panel = Point & {
   id: string
   title: string
+  slot: PanelSlot
 }
 
 type WindowConfig = {
@@ -199,12 +277,36 @@ function Inspector({
 
   return (
     <div>
-      <input
-        value={panel.title}
-        onChange={(event) =>
-          onUpdatePanel(panel.id, { title: event.target.value })
-        }
-      />
+      <div>
+        <label>Title</label>
+        <input
+          value={panel.title}
+          onChange={(event) =>
+            onUpdatePanel(panel.id, {
+              title: event.target.value,
+            })
+          }
+        />
+      </div>
+
+      <div>
+        <label>Slot</label>
+        <select
+          value={panel.slot}
+          onChange={(event) =>
+            onUpdatePanel(panel.id, {
+              slot: event.target.value as PanelSlot,
+            })
+          }
+        >
+          {PANEL_SLOTS.map((slot) => (
+            <option key={slot.value} value={slot.value}>
+              {slot.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div>ID: {panel.id}</div>
       <div>X: {panel.x}</div>
       <div>Y: {panel.y}</div>
@@ -226,6 +328,7 @@ function App() {
   const [stack, setStack] = useState<WindowId[]>(['toolbox', 'project', 'inspector'])
   const [panels, setPanels] = useState<Panel[]>([])
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(windows))
@@ -235,14 +338,14 @@ function App() {
     const keepOnScreen = () => {
       setWindows((current) => {
         const next = { ...current }
-        ;(Object.keys(next) as WindowId[]).forEach((id) => {
-          const win = next[id]
-          next[id] = {
-            ...win,
-            x: clamp(win.x, 0, Math.max(0, window.innerWidth - win.width)),
-            y: clamp(win.y, 48, Math.max(48, window.innerHeight - 42)),
-          }
-        })
+          ; (Object.keys(next) as WindowId[]).forEach((id) => {
+            const win = next[id]
+            next[id] = {
+              ...win,
+              x: clamp(win.x, 0, Math.max(0, window.innerWidth - win.width)),
+              y: clamp(win.y, 48, Math.max(48, window.innerHeight - 42)),
+            }
+          })
         return next
       })
     }
@@ -256,6 +359,7 @@ function App() {
       title: 'New Panel',
       x: 400,
       y: 200,
+      slot: 'center',
     }
 
     setPanels((current) => [...current, newPanel])
@@ -338,49 +442,70 @@ function App() {
         </div>
         <div className="topbar-actions">
           <button type="button" onClick={resetLayout}>Reset layout</button>
-          <button type="button" className="play-button">▶ Preview</button>
+          <button
+            type="button"
+            className="play-button"
+            onClick={() => setPreviewOpen((current) => !current)}
+          >
+            ▶ Preview
+          </button>
         </div>
       </header>
 
-      <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
-        <div className="canvas-center-message">
-          <div className="canvas-title">GAME FLOW</div>
-          <div>Use the floating editor windows to build your game.</div>
-        </div>
-
-        {panels.map((panel) => (
-          <div
-            key={panel.id}
-            className={`game-panel ${selectedPanelId === panel.id ? 'selected' : ''}`}
-            onClick={(event) => {
-              event.stopPropagation()
-              setSelectedPanelId(panel.id)
-            }}
-            style={{
-              left: panel.x,
-              top: panel.y,
-            }}
-          >
-            {panel.title}
+      {!previewOpen && (
+        <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
+          <div className="canvas-center-message">
+            <div className="canvas-title">GAME FLOW</div>
+            <div>Use the floating editor windows to build your game.</div>
           </div>
-        ))}
-      </section>
 
-      {windowConfigs.map((config) => (
-        <FloatingWindow
-          key={config.id}
-          id={config.id}
-          title={config.title}
-          state={windows[config.id]}
-          minWidth={config.minWidth}
-          minHeight={config.minHeight}
-          zIndex={20 + stack.indexOf(config.id)}
-          onFocus={focusWindow}
-          onChange={updateWindow}
-        >
-          {config.children}
-        </FloatingWindow>
-      ))}
+          {panels.map((panel) => {
+            const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
+
+            if (!slot) return null
+
+            return (
+              <div
+                key={panel.id}
+                className={`game-panel ${selectedPanelId === panel.id ? 'selected' : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setSelectedPanelId(panel.id)
+                }}
+                style={{
+                  gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
+                  gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
+                }}
+              >
+                {panel.title}
+              </div>
+            )
+          })}
+        </section>
+      )}
+
+      {!previewOpen &&
+        windowConfigs.map((config) => (
+          <FloatingWindow
+            key={config.id}
+            id={config.id}
+            title={config.title}
+            state={windows[config.id]}
+            minWidth={config.minWidth}
+            minHeight={config.minHeight}
+            zIndex={20 + stack.indexOf(config.id)}
+            onFocus={focusWindow}
+            onChange={updateWindow}
+          >
+            {config.children}
+          </FloatingWindow>
+        ))}
+
+      {previewOpen && (
+        <div className="game-layout">
+          Preview
+        </div>
+      )}
     </main>
   )
 }
