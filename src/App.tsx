@@ -5,6 +5,11 @@ type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
 type WindowId = 'toolbox' | 'project' | 'inspector'
 
+type Panel = {
+  id: string
+  title: string
+}
+
 type WindowConfig = {
   id: WindowId
   title: string
@@ -141,12 +146,12 @@ function FloatingWindow({
   )
 }
 
-function Toolbox() {
+function Toolbox({ onCreatePanel }: { onCreatePanel: () => void }) {
   const tools = ['Panel', 'Resource', 'Action / Task', 'State / Unlock', 'Story Event', 'Directive']
   return (
     <div className="tool-list">
       {tools.map((tool) => (
-        <button type="button" className="tool-button" key={tool}>
+        <button type="button" className="tool-button" key={tool} onClick={tool === 'Panel' ? onCreatePanel : undefined}>
           <span className="tool-plus">+</span>
           <span>{tool}</span>
         </button>
@@ -155,11 +160,18 @@ function Toolbox() {
   )
 }
 
-function ProjectPanel() {
+function ProjectPanel({ panels }: { panels: Panel[] }) {
   return (
     <div className="project-tree">
       <div className="tree-row tree-root">▾ Test Game</div>
       <div className="tree-row tree-child muted">Panels</div>
+
+      {panels.map((panel) => (
+        <div className="tree-row tree-grandchild" key={panel.id}>
+          {panel.title}
+        </div>
+      ))}
+
       <div className="tree-row tree-child muted">Resources</div>
       <div className="tree-row tree-child muted">Actions</div>
       <div className="tree-row tree-child muted">Story</div>
@@ -190,6 +202,7 @@ function App() {
     }
   })
   const [stack, setStack] = useState<WindowId[]>(['toolbox', 'project', 'inspector'])
+  const [panels, setPanels] = useState<Panel[]>([])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(windows))
@@ -214,6 +227,15 @@ function App() {
     return () => window.removeEventListener('resize', keepOnScreen)
   }, [])
 
+  const createPanel = () => {
+    const newPanel: Panel = {
+      id: crypto.randomUUID(),
+      title: 'New Panel',
+    }
+
+    setPanels((current) => [...current, newPanel])
+  }
+
   const windowConfigs = useMemo<WindowConfig[]>(
     () => [
       {
@@ -222,7 +244,7 @@ function App() {
         initial: DEFAULT_WINDOWS.toolbox,
         minWidth: 190,
         minHeight: 210,
-        children: <Toolbox />,
+        children: <Toolbox onCreatePanel={createPanel} />,
       },
       {
         id: 'project',
@@ -230,7 +252,7 @@ function App() {
         initial: DEFAULT_WINDOWS.project,
         minWidth: 220,
         minHeight: 180,
-        children: <ProjectPanel />,
+        children: <ProjectPanel panels={panels} />,
       },
       {
         id: 'inspector',
@@ -241,7 +263,7 @@ function App() {
         children: <Inspector />,
       },
     ],
-    [],
+    [createPanel],
   )
 
   const focusWindow = (id: WindowId) => {
