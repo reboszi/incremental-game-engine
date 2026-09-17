@@ -263,7 +263,7 @@ function App() {
         children: <Inspector />,
       },
     ],
-    [createPanel],
+    [createPanel, panels],
   )
 
   const focusWindow = (id: WindowId) => {
