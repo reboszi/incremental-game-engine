@@ -72,7 +72,7 @@ button { color: inherit; }
 .topbar .play-button { color: #c9f3c9; border-color: #4f7650; }
 
 .canvas {
-  position: absolute;
+  position: relative;
   inset: 48px 0 0;
   overflow: hidden;
   background-color: #0a0f0a;
@@ -218,6 +218,17 @@ button { color: inherit; }
 }
 .inspector-empty strong { color: #a9baa9; font-size: 13px; }
 .inspector-icon { color: #789878; font-size: 28px; }
+
+.game-panel {
+  position: absolute;
+  width: 180px;
+  min-height: 80px;
+  padding: 12px;
+  border: 1px solid #5f7f68;
+  border-radius: 6px;
+  background: #101a12;
+  box-sizing: border-box;
+}
 
 @media (max-width: 720px) {
   .brand > span:nth-child(2), .version { display: none; }

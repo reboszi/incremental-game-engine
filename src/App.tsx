@@ -1,11 +1,11 @@
-import { PointerEvent as ReactPointerEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
 type WindowId = 'toolbox' | 'project' | 'inspector'
 
-type Panel = {
+type Panel = Point & {
   id: string
   title: string
 }
@@ -227,14 +227,16 @@ function App() {
     return () => window.removeEventListener('resize', keepOnScreen)
   }, [])
 
-  const createPanel = () => {
+  const createPanel = useCallback(() => {
     const newPanel: Panel = {
       id: crypto.randomUUID(),
       title: 'New Panel',
+      x: 400,
+      y: 200,
     }
 
     setPanels((current) => [...current, newPanel])
-  }
+  }, [])
 
   const windowConfigs = useMemo<WindowConfig[]>(
     () => [
@@ -304,6 +306,19 @@ function App() {
           <div className="canvas-title">GAME FLOW</div>
           <div>Use the floating editor windows to build your game.</div>
         </div>
+
+        {panels.map((panel) => (
+          <div
+            key={panel.id}
+            className="game-panel"
+            style={{
+              left: panel.x,
+              top: panel.y,
+            }}
+          >
+            {panel.title}
+          </div>
+        ))}
       </section>
 
       {windowConfigs.map((config) => (
