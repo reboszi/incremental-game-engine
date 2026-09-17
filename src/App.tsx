@@ -452,37 +452,36 @@ function App() {
         </div>
       </header>
 
-      {!previewOpen && (
-        <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
-          <div className="canvas-center-message">
-            <div className="canvas-title">GAME FLOW</div>
-            <div>Use the floating editor windows to build your game.</div>
-          </div>
 
-          {panels.map((panel) => {
-            const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
+      <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
+        <div className="canvas-center-message">
+          <div className="canvas-title">GAME FLOW</div>
+          <div>Use the floating editor windows to build your game.</div>
+        </div>
 
-            if (!slot) return null
+        {panels.map((panel) => {
+          const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
 
-            return (
-              <div
-                key={panel.id}
-                className={`game-panel ${selectedPanelId === panel.id ? 'selected' : ''}`}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setSelectedPanelId(panel.id)
-                }}
-                style={{
-                  gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
-                  gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
-                }}
-              >
-                {panel.title}
-              </div>
-            )
-          })}
-        </section>
-      )}
+          if (!slot) return null
+
+          return (
+            <div
+              key={panel.id}
+              className={`game-panel ${selectedPanelId === panel.id ? 'selected' : ''}`}
+              onClick={(event) => {
+                event.stopPropagation()
+                setSelectedPanelId(panel.id)
+              }}
+              style={{
+                gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
+                gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
+              }}
+            >
+              {panel.title}
+            </div>
+          )
+        })}
+      </section>
 
       {!previewOpen &&
         windowConfigs.map((config) => (
@@ -500,12 +499,6 @@ function App() {
             {config.children}
           </FloatingWindow>
         ))}
-
-      {previewOpen && (
-        <div className="game-layout">
-          Preview
-        </div>
-      )}
     </main>
   )
 }
