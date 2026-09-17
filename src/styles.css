@@ -230,6 +230,11 @@ button { color: inherit; }
   box-sizing: border-box;
 }
 
+.game-panel.selected {
+  border-color: #9bcf9b;
+  box-shadow: 0 0 0 2px rgba(155, 207, 155, 0.2);
+}
+
 @media (max-width: 720px) {
   .brand > span:nth-child(2), .version { display: none; }
   .topbar button:first-child { display: none; }

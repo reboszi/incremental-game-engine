@@ -180,12 +180,23 @@ function ProjectPanel({ panels }: { panels: Panel[] }) {
   )
 }
 
-function Inspector() {
+function Inspector({ panel }: { panel: Panel | null }) {
+  if (!panel) {
+    return (
+      <div className="inspector-empty">
+        <div className="inspector-icon">◇</div>
+        <strong>Nothing selected</strong>
+        <span>Select an element on the canvas to edit its properties.</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="inspector-empty">
-      <div className="inspector-icon">◇</div>
-      <strong>Nothing selected</strong>
-      <span>Select an element on the canvas to edit its properties.</span>
+    <div>
+      <strong>{panel.title}</strong>
+      <div>ID: {panel.id}</div>
+      <div>X: {panel.x}</div>
+      <div>Y: {panel.y}</div>
     </div>
   )
 }
@@ -203,6 +214,7 @@ function App() {
   })
   const [stack, setStack] = useState<WindowId[]>(['toolbox', 'project', 'inspector'])
   const [panels, setPanels] = useState<Panel[]>([])
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(windows))
@@ -238,6 +250,9 @@ function App() {
     setPanels((current) => [...current, newPanel])
   }, [])
 
+  const selectedPanel =
+    panels.find((panel) => panel.id === selectedPanelId) ?? null
+
   const windowConfigs = useMemo<WindowConfig[]>(
     () => [
       {
@@ -262,7 +277,7 @@ function App() {
         initial: DEFAULT_WINDOWS.inspector,
         minWidth: 270,
         minHeight: 240,
-        children: <Inspector />,
+        children: <Inspector panel={selectedPanel} />,
       },
     ],
     [createPanel, panels],
@@ -301,7 +316,7 @@ function App() {
         </div>
       </header>
 
-      <section className="canvas" aria-label="Game flow canvas">
+      <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
         <div className="canvas-center-message">
           <div className="canvas-title">GAME FLOW</div>
           <div>Use the floating editor windows to build your game.</div>
@@ -310,7 +325,11 @@ function App() {
         {panels.map((panel) => (
           <div
             key={panel.id}
-            className="game-panel"
+            className={`game-panel ${selectedPanelId === panel.id ? 'selected' : ''}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              setSelectedPanelId(panel.id)
+            }}
             style={{
               left: panel.x,
               top: panel.y,
