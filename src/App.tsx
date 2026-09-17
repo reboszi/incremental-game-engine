@@ -86,6 +86,7 @@ type Panel = Point & {
   id: string
   title: string
   slot: PanelSlot
+  color: string
 }
 
 type WindowConfig = {
@@ -301,7 +302,7 @@ function Inspector({
   return (
     <div>
       <div>
-        <label>Title</label>
+        <label>Title </label>
         <input
           value={panel.title}
           onChange={(event) =>
@@ -313,7 +314,7 @@ function Inspector({
       </div>
 
       <div>
-        <label>Slot</label>
+        <label>Slot </label>
         <select
           value={panel.slot}
           onChange={(event) =>
@@ -328,6 +329,19 @@ function Inspector({
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label>Color </label>
+        <input
+          type="color"
+          value={panel.color}
+          onChange={(event) =>
+            onUpdatePanel(panel.id, {
+              color: event.target.value,
+            })
+          }
+        />
       </div>
 
       <div>ID: {panel.id}</div>
@@ -383,6 +397,7 @@ function App() {
       x: 400,
       y: 200,
       slot: 'center',
+      color: '#101a12',
     }
 
     setPanels((current) => [...current, newPanel])
@@ -498,6 +513,7 @@ function App() {
               style={{
                 gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
                 gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
+                backgroundColor: panel.color,
               }}
             >
               {panel.title}

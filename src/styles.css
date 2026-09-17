@@ -81,7 +81,7 @@ button { color: inherit; }
     220px 260px 1fr 260px 220px;
 
   grid-template-rows:
-    50px 40px 1fr 400px 40px;
+    50px 50px 1fr 400px 50px;
 
   overflow: hidden;
   background-color: #0a0f0a;
