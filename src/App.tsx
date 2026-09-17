@@ -280,7 +280,7 @@ function App() {
         children: <Inspector panel={selectedPanel} />,
       },
     ],
-    [createPanel, panels],
+    [createPanel, panels, selectedPanel],
   )
 
   const focusWindow = (id: WindowId) => {
