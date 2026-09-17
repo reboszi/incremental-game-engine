@@ -26,7 +26,7 @@ const PANEL_SLOTS = [
     value: 'left-outer',
     label: 'Left Outer',
     rowStart: 2,
-    rowSpan: 3,
+    rowSpan: 4,
     columnStart: 1,
     columnSpan: 1,
   },
@@ -58,7 +58,7 @@ const PANEL_SLOTS = [
     value: 'right-outer',
     label: 'Right Outer',
     rowStart: 2,
-    rowSpan: 3,
+    rowSpan: 4,
     columnStart: 5,
     columnSpan: 1,
   },
@@ -101,9 +101,9 @@ const STORAGE_KEY = 'ige-editor-windows-v1'
 
 const DEFAULT_WINDOWS: Record<WindowId, WindowState> = {
   menu: { x: 20, y: 20, width: 260, height: 180, collapsed: false },
-  toolbox: { x: 24, y: 72, width: 230, height: 360, collapsed: false },
-  project: { x: 24, y: 450, width: 280, height: 300, collapsed: false },
-  inspector: { x: 0, y: 72, width: 320, height: 520, collapsed: false },
+  toolbox: { x: 20, y: 200, width: 230, height: 360, collapsed: false },
+  project: { x: 20, y: 560, width: 280, height: 300, collapsed: false },
+  inspector: { x: 0, y: 20, width: 320, height: 520, collapsed: false },
 }
 
 function clamp(value: number, min: number, max: number) {
