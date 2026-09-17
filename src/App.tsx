@@ -3,7 +3,7 @@ import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, u
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
-type WindowId = 'toolbox' | 'project' | 'inspector'
+type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector'
 
 const PANEL_SLOTS = [
   {
@@ -100,6 +100,7 @@ type WindowConfig = {
 const STORAGE_KEY = 'ige-editor-windows-v1'
 
 const DEFAULT_WINDOWS: Record<WindowId, WindowState> = {
+  menu: { x: 20, y: 20, width: 260, height: 180, collapsed: false },
   toolbox: { x: 24, y: 72, width: 230, height: 360, collapsed: false },
   project: { x: 24, y: 450, width: 280, height: 300, collapsed: false },
   inspector: { x: 0, y: 72, width: 320, height: 520, collapsed: false },
@@ -258,6 +259,28 @@ function ProjectPanel({ panels }: { panels: Panel[] }) {
   )
 }
 
+function Menu({
+  onResetLayout,
+  previewOpen,
+  onTogglePreview,
+}: {
+  onResetLayout: () => void
+  previewOpen: boolean
+  onTogglePreview: () => void
+}) {
+  return (
+    <div className="tool-list">
+      <button type="button" className="tool-button" onClick={onResetLayout}>
+        Reset layout
+      </button>
+
+      <button type="button" className="tool-button" onClick={onTogglePreview}>
+        {previewOpen ? 'Back to editor' : 'Preview'}
+      </button>
+    </div>
+  )
+}
+
 function Inspector({
   panel,
   onUpdatePanel,
@@ -325,7 +348,7 @@ function App() {
       },
     }
   })
-  const [stack, setStack] = useState<WindowId[]>(['toolbox', 'project', 'inspector'])
+  const [stack, setStack] = useState<WindowId[]>(['menu', 'toolbox', 'project', 'inspector'])
   const [panels, setPanels] = useState<Panel[]>([])
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -378,8 +401,37 @@ function App() {
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? null
 
+  const resetLayout = useCallback(() => {
+    setWindows({
+      ...DEFAULT_WINDOWS,
+      inspector: {
+        ...DEFAULT_WINDOWS.inspector,
+        x: Math.max(
+          24,
+          window.innerWidth - DEFAULT_WINDOWS.inspector.width - 24,
+        ),
+      },
+    })
+
+    setStack(['menu', 'toolbox', 'project', 'inspector'])
+  }, [])
+
   const windowConfigs = useMemo<WindowConfig[]>(
     () => [
+      {
+        id: 'menu',
+        title: 'Incremental Game Engine',
+        initial: DEFAULT_WINDOWS.menu,
+        minWidth: 220,
+        minHeight: 120,
+        children: (
+          <Menu
+            onResetLayout={resetLayout}
+            previewOpen={previewOpen}
+            onTogglePreview={() => setPreviewOpen((current) => !current)}
+          />
+        ),
+      },
       {
         id: 'toolbox',
         title: 'TOOLBOX',
@@ -410,7 +462,7 @@ function App() {
         ),
       },
     ],
-    [createPanel, panels, selectedPanel, updatePanel],
+    [createPanel, panels, selectedPanel, updatePanel, resetLayout, previewOpen],
   )
 
   const focusWindow = (id: WindowId) => {
@@ -421,37 +473,8 @@ function App() {
     setWindows((current) => ({ ...current, [id]: next }))
   }
 
-  const resetLayout = () => {
-    setWindows({
-      ...DEFAULT_WINDOWS,
-      inspector: {
-        ...DEFAULT_WINDOWS.inspector,
-        x: Math.max(24, window.innerWidth - DEFAULT_WINDOWS.inspector.width - 24),
-      },
-    })
-    setStack(['toolbox', 'project', 'inspector'])
-  }
-
   return (
     <main className="editor-shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">IGE</span>
-          <span>Incremental Game Engine</span>
-          <span className="version">v0.1</span>
-        </div>
-        <div className="topbar-actions">
-          <button type="button" onClick={resetLayout}>Reset layout</button>
-          <button
-            type="button"
-            className="play-button"
-            onClick={() => setPreviewOpen((current) => !current)}
-          >
-            ▶ Preview
-          </button>
-        </div>
-      </header>
-
 
       <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
         <div className="canvas-center-message">
@@ -483,8 +506,9 @@ function App() {
         })}
       </section>
 
-      {!previewOpen &&
-        windowConfigs.map((config) => (
+      {windowConfigs
+        .filter((config) => !previewOpen || config.id === 'menu')
+        .map((config) => (
           <FloatingWindow
             key={config.id}
             id={config.id}
