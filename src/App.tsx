@@ -180,7 +180,13 @@ function ProjectPanel({ panels }: { panels: Panel[] }) {
   )
 }
 
-function Inspector({ panel }: { panel: Panel | null }) {
+function Inspector({
+  panel,
+  onUpdatePanel,
+}: {
+  panel: Panel | null
+  onUpdatePanel: (id: string, changes: Partial<Panel>) => void
+}) {
   if (!panel) {
     return (
       <div className="inspector-empty">
@@ -193,7 +199,12 @@ function Inspector({ panel }: { panel: Panel | null }) {
 
   return (
     <div>
-      <strong>{panel.title}</strong>
+      <input
+        value={panel.title}
+        onChange={(event) =>
+          onUpdatePanel(panel.id, { title: event.target.value })
+        }
+      />
       <div>ID: {panel.id}</div>
       <div>X: {panel.x}</div>
       <div>Y: {panel.y}</div>
@@ -250,6 +261,16 @@ function App() {
     setPanels((current) => [...current, newPanel])
   }, [])
 
+  const updatePanel = useCallback((id: string, changes: Partial<Panel>) => {
+    setPanels((current) =>
+      current.map((panel) =>
+        panel.id === id
+          ? { ...panel, ...changes }
+          : panel
+      )
+    )
+  }, [])
+
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? null
 
@@ -277,10 +298,15 @@ function App() {
         initial: DEFAULT_WINDOWS.inspector,
         minWidth: 270,
         minHeight: 240,
-        children: <Inspector panel={selectedPanel} />,
+        children: (
+          <Inspector
+            panel={selectedPanel}
+            onUpdatePanel={updatePanel}
+          />
+        ),
       },
     ],
-    [createPanel, panels, selectedPanel],
+    [createPanel, panels, selectedPanel, updatePanel],
   )
 
   const focusWindow = (id: WindowId) => {
