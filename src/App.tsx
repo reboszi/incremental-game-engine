@@ -86,7 +86,9 @@ type Panel = Point & {
   id: string
   title: string
   slot: PanelSlot
-  color: string
+  backgroundColor: string
+  textColor: string
+  borderColor: string
 }
 
 type WindowConfig = {
@@ -109,6 +111,12 @@ const DEFAULT_WINDOWS: Record<WindowId, WindowState> = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
+}
+
+const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/
+
+function isValidHexColor(value: string) {
+  return HEX_COLOR_REGEX.test(value)
 }
 
 function loadWindowState(): Record<WindowId, WindowState> {
@@ -226,6 +234,54 @@ function FloatingWindow({
   )
 }
 
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  const [text, setText] = useState(value)
+
+  useEffect(() => {
+    setText(value)
+  }, [value])
+
+  const updateText = (next: string) => {
+    setText(next)
+
+    if (isValidHexColor(next)) {
+      onChange(next)
+    }
+  }
+
+  return (
+    <div className="inspector-field color-field">
+      <label>{label}</label>
+
+      <div className="color-input-row">
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => {
+            setText(event.target.value)
+            onChange(event.target.value)
+          }}
+        />
+
+        <input
+          type="text"
+          value={text}
+          className={isValidHexColor(text) ? '' : 'invalid'}
+          onChange={(event) => updateText(event.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
 function Toolbox({ onCreatePanel }: { onCreatePanel: () => void }) {
   const tools = ['Panel', 'Resource', 'Action / Task', 'State / Unlock', 'Story Event', 'Directive']
   return (
@@ -301,7 +357,7 @@ function Inspector({
 
   return (
     <div>
-      <div>
+      <div className="inspector-field">
         <label>Title </label>
         <input
           value={panel.title}
@@ -313,7 +369,7 @@ function Inspector({
         />
       </div>
 
-      <div>
+      <div className="inspector-field">
         <label>Slot </label>
         <select
           value={panel.slot}
@@ -331,22 +387,35 @@ function Inspector({
         </select>
       </div>
 
-      <div>
-        <label>Color </label>
-        <input
-          type="color"
-          value={panel.color}
-          onChange={(event) =>
-            onUpdatePanel(panel.id, {
-              color: event.target.value,
-            })
-          }
-        />
-      </div>
+      <ColorField
+        label="Background"
+        value={panel.backgroundColor}
+        onChange={(value) =>
+          onUpdatePanel(panel.id, {
+            backgroundColor: value,
+          })
+        }
+      />
 
-      <div>ID: {panel.id}</div>
-      <div>X: {panel.x}</div>
-      <div>Y: {panel.y}</div>
+      <ColorField
+        label="Text"
+        value={panel.textColor}
+        onChange={(value) =>
+          onUpdatePanel(panel.id, {
+            textColor: value,
+          })
+        }
+      />
+
+      <ColorField
+        label="Border"
+        value={panel.borderColor}
+        onChange={(value) =>
+          onUpdatePanel(panel.id, {
+            borderColor: value,
+          })
+        }
+      />
     </div>
   )
 }
@@ -397,7 +466,9 @@ function App() {
       x: 400,
       y: 200,
       slot: 'center',
-      color: '#101a12',
+      backgroundColor: '#101a12',
+      textColor: '#d9e4d9',
+      borderColor: '#5f7f68',
     }
 
     setPanels((current) => [...current, newPanel])
@@ -513,7 +584,9 @@ function App() {
               style={{
                 gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
                 gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
-                backgroundColor: panel.color,
+                backgroundColor: panel.backgroundColor,
+                color: panel.textColor,
+                borderColor: panel.borderColor,
               }}
             >
               {panel.title}
