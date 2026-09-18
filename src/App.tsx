@@ -1,5 +1,6 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GameSettings, Panel, PanelSlot } from './types'
+import type { GameProject, GameSettings, Panel, PanelSlot } from './types'
+import { CURRENT_PROJECT_VERSION, loadGame, saveGame } from './save'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
@@ -292,10 +293,16 @@ function Toolbox({ onCreatePanel }: { onCreatePanel: () => void }) {
   )
 }
 
-function ProjectPanel({ panels }: { panels: Panel[] }) {
+function ProjectPanel({
+  projectName,
+  panels,
+}: {
+  projectName: string
+  panels: Panel[]
+}) {
   return (
     <div className="project-tree">
-      <div className="tree-row tree-root">▾ Test Game</div>
+      <div className="tree-row tree-root">▾ {projectName}</div>
       <div className="tree-row tree-child muted">Panels</div>
 
       {panels.map((panel) => (
@@ -369,14 +376,26 @@ function Menu({
   previewOpen,
   onTogglePreview,
   onOpenSettings,
+  onSave,
+  onLoad,
 }: {
   onResetLayout: () => void
   previewOpen: boolean
   onTogglePreview: () => void
   onOpenSettings: () => void
+  onSave: () => void
+  onLoad: () => void
 }) {
   return (
     <div className="tool-list">
+      <button type="button" className="tool-button" onClick={onSave}>
+        Save
+      </button>
+
+      <button type="button" className="tool-button" onClick={onLoad}>
+        Load
+      </button>
+
       <button type="button" className="tool-button" onClick={onResetLayout}>
         Reset layout
       </button>
@@ -486,6 +505,7 @@ function App() {
     }
   })
   const [stack, setStack] = useState<WindowId[]>(['menu', 'toolbox', 'project', 'inspector'])
+  const [projectName, setProjectName] = useState('Test Game')
   const [gameSettings, setGameSettings] = useState<GameSettings>(
     DEFAULT_GAME_SETTINGS
   )
@@ -553,6 +573,30 @@ function App() {
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? null
 
+  const saveProject = useCallback(() => {
+    const project: GameProject = {
+      version: CURRENT_PROJECT_VERSION,
+      name: projectName,
+      gameSettings,
+      panels,
+    }
+
+    saveGame(project)
+  }, [projectName, gameSettings, panels])
+
+  const loadProject = useCallback(() => {
+    const project = loadGame()
+
+    if (!project) {
+      return
+    }
+
+    setProjectName(project.name)
+    setGameSettings(project.gameSettings)
+    setPanels(project.panels)
+    setSelectedPanelId(null)
+  }, [])
+
   const resetLayout = useCallback(() => {
     setWindows({
       ...DEFAULT_WINDOWS,
@@ -581,6 +625,8 @@ function App() {
             previewOpen={previewOpen}
             onTogglePreview={() => setPreviewOpen((current) => !current)}
             onOpenSettings={() => setSettingsOpen(true)}
+            onSave={saveProject}
+            onLoad={loadProject}
           />
         ),
       },
@@ -596,7 +642,7 @@ function App() {
         title: 'PROJECT',
         minWidth: 220,
         minHeight: 180,
-        children: <ProjectPanel panels={panels} />,
+        children: <ProjectPanel projectName={projectName} panels={panels} />,
       },
       {
         id: 'settings',
@@ -633,7 +679,10 @@ function App() {
       previewOpen,
       gameSettings,
       updateGameSettings,
-      settingsOpen
+      settingsOpen,
+      projectName,
+      saveProject,
+      loadProject
     ]
   )
 
