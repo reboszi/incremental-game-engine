@@ -82,7 +82,7 @@ const PANEL_SLOTS = [
 
 type PanelSlot = typeof PANEL_SLOTS[number]['value']
 
-type Panel = Point & {
+type Panel = {
   id: string
   title: string
   slot: PanelSlot
@@ -448,7 +448,7 @@ function App() {
             next[id] = {
               ...win,
               x: clamp(win.x, 0, Math.max(0, window.innerWidth - win.width)),
-              y: clamp(win.y, 0, Math.max(48, window.innerHeight - 42)),
+              y: clamp(win.y, 0, Math.max(0, window.innerHeight - 42)),
             }
           })
         return next
@@ -462,8 +462,6 @@ function App() {
     const newPanel: Panel = {
       id: crypto.randomUUID(),
       title: 'New Panel',
-      x: 400,
-      y: 200,
       slot: 'center',
       backgroundColor: '#101a12',
       textColor: '#d9e4d9',
@@ -519,7 +517,6 @@ function App() {
       {
         id: 'toolbox',
         title: 'TOOLBOX',
-        initial: DEFAULT_WINDOWS.toolbox,
         minWidth: 190,
         minHeight: 210,
         children: <Toolbox onCreatePanel={createPanel} />,
@@ -527,7 +524,6 @@ function App() {
       {
         id: 'project',
         title: 'PROJECT',
-        initial: DEFAULT_WINDOWS.project,
         minWidth: 220,
         minHeight: 180,
         children: <ProjectPanel panels={panels} />,
@@ -535,7 +531,6 @@ function App() {
       {
         id: 'inspector',
         title: 'PROPERTIES',
-        initial: DEFAULT_WINDOWS.inspector,
         minWidth: 270,
         minHeight: 240,
         children: (
