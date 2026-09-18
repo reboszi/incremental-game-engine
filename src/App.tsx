@@ -94,7 +94,6 @@ type Panel = Point & {
 type WindowConfig = {
   id: WindowId
   title: string
-  initial: WindowState
   minWidth: number
   minHeight: number
   children: ReactNode
@@ -166,9 +165,9 @@ function FloatingWindow({
   const drag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragStart.current) return
     const maxX = Math.max(0, window.innerWidth - state.width)
-    const maxY = Math.max(48, window.innerHeight - 42)
+    const maxY = Math.max(0, window.innerHeight - 42)
     const x = clamp(dragStart.current.window.x + event.clientX - dragStart.current.pointer.x, 0, maxX)
-    const y = clamp(dragStart.current.window.y + event.clientY - dragStart.current.pointer.y, 48, maxY)
+    const y = clamp(dragStart.current.window.y + event.clientY - dragStart.current.pointer.y, 0, maxY)
     onChange(id, { ...state, x, y })
   }
 
@@ -258,7 +257,7 @@ function ColorField({
   }
 
   return (
-    <div className="inspector-field color-field">
+    <div className="inspector-field">
       <label>{label}</label>
 
       <div className="color-input-row">
@@ -449,7 +448,7 @@ function App() {
             next[id] = {
               ...win,
               x: clamp(win.x, 0, Math.max(0, window.innerWidth - win.width)),
-              y: clamp(win.y, 48, Math.max(48, window.innerHeight - 42)),
+              y: clamp(win.y, 0, Math.max(48, window.innerHeight - 42)),
             }
           })
         return next
@@ -507,7 +506,6 @@ function App() {
       {
         id: 'menu',
         title: 'Incremental Game Engine',
-        initial: DEFAULT_WINDOWS.menu,
         minWidth: 220,
         minHeight: 120,
         children: (
@@ -563,10 +561,6 @@ function App() {
     <main className="editor-shell">
 
       <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
-        <div className="canvas-center-message">
-          <div className="canvas-title">GAME FLOW</div>
-          <div>Use the floating editor windows to build your game.</div>
-        </div>
 
         {panels.map((panel) => {
           const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
