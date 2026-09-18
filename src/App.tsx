@@ -1,15 +1,10 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { GameSettings, Panel, PanelSlot } from './types'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
 type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector' | 'settings'
-
-type GameSettings = {
-  defaultPanelBackgroundColor: string
-  defaultPanelTextColor: string
-  defaultPanelBorderColor: string
-}
 
 const PANEL_SLOTS = [
   {
@@ -85,17 +80,6 @@ const PANEL_SLOTS = [
     columnSpan: 3,
   },
 ] as const
-
-type PanelSlot = typeof PANEL_SLOTS[number]['value']
-
-type Panel = {
-  id: string
-  title: string
-  slot: PanelSlot
-  backgroundColor: string
-  textColor: string
-  borderColor: string
-}
 
 type WindowConfig = {
   id: WindowId
