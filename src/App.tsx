@@ -3,7 +3,13 @@ import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, u
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
-type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector'
+type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector' | 'settings'
+
+type GameSettings = {
+  defaultPanelBackgroundColor: string
+  defaultPanelTextColor: string
+  defaultPanelBorderColor: string
+}
 
 const PANEL_SLOTS = [
   {
@@ -99,13 +105,20 @@ type WindowConfig = {
   children: ReactNode
 }
 
+const DEFAULT_GAME_SETTINGS: GameSettings = {
+  defaultPanelBackgroundColor: '#101a12',
+  defaultPanelTextColor: '#d9e4d9',
+  defaultPanelBorderColor: '#5f7f68',
+}
+
 const STORAGE_KEY = 'ige-editor-windows-v1'
 
 const DEFAULT_WINDOWS: Record<WindowId, WindowState> = {
   menu: { x: 20, y: 20, width: 260, height: 180, collapsed: false },
-  toolbox: { x: 20, y: 200, width: 230, height: 360, collapsed: false },
-  project: { x: 20, y: 560, width: 280, height: 300, collapsed: false },
+  toolbox: { x: 20, y: 220, width: 230, height: 360, collapsed: false },
+  project: { x: 20, y: 580, width: 280, height: 300, collapsed: false },
   inspector: { x: 0, y: 20, width: 320, height: 520, collapsed: false },
+  settings: { x: 320, y: 80, width: 320, height: 300, collapsed: false },
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -315,14 +328,68 @@ function ProjectPanel({ panels }: { panels: Panel[] }) {
   )
 }
 
+function GameSettingsPanel({
+  settings,
+  onChange,
+  onClose,
+}: {
+  settings: GameSettings
+  onChange: (changes: Partial<GameSettings>) => void
+  onClose: () => void
+}) {
+  return (
+    <div>
+      <ColorField
+        label="Default panel background"
+        value={settings.defaultPanelBackgroundColor}
+        onChange={(value) =>
+          onChange({
+            defaultPanelBackgroundColor: value,
+          })
+        }
+      />
+
+      <ColorField
+        label="Default text color"
+        value={settings.defaultPanelTextColor}
+        onChange={(value) =>
+          onChange({
+            defaultPanelTextColor: value,
+          })
+        }
+      />
+
+      <ColorField
+        label="Default border color"
+        value={settings.defaultPanelBorderColor}
+        onChange={(value) =>
+          onChange({
+            defaultPanelBorderColor: value,
+          })
+        }
+      />
+
+      <button
+        type="button"
+        className="tool-button"
+        onClick={onClose}
+      >
+        Close
+      </button>
+    </div>
+  )
+}
+
 function Menu({
   onResetLayout,
   previewOpen,
   onTogglePreview,
+  onOpenSettings,
 }: {
   onResetLayout: () => void
   previewOpen: boolean
   onTogglePreview: () => void
+  onOpenSettings: () => void
 }) {
   return (
     <div className="tool-list">
@@ -332,6 +399,10 @@ function Menu({
 
       <button type="button" className="tool-button" onClick={onTogglePreview}>
         {previewOpen ? 'Back to editor' : 'Preview'}
+      </button>
+
+      <button type="button" className="tool-button" onClick={onOpenSettings}>
+        Settings
       </button>
     </div>
   )
@@ -431,9 +502,13 @@ function App() {
     }
   })
   const [stack, setStack] = useState<WindowId[]>(['menu', 'toolbox', 'project', 'inspector'])
+  const [gameSettings, setGameSettings] = useState<GameSettings>(
+    DEFAULT_GAME_SETTINGS
+  )
   const [panels, setPanels] = useState<Panel[]>([])
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(windows))
@@ -463,13 +538,13 @@ function App() {
       id: crypto.randomUUID(),
       title: 'New Panel',
       slot: 'center',
-      backgroundColor: '#101a12',
-      textColor: '#d9e4d9',
-      borderColor: '#5f7f68',
+      backgroundColor: gameSettings.defaultPanelBackgroundColor,
+      textColor: gameSettings.defaultPanelTextColor,
+      borderColor: gameSettings.defaultPanelBorderColor,
     }
 
     setPanels((current) => [...current, newPanel])
-  }, [])
+  }, [gameSettings])
 
   const updatePanel = useCallback((id: string, changes: Partial<Panel>) => {
     setPanels((current) =>
@@ -480,6 +555,16 @@ function App() {
       )
     )
   }, [])
+
+  const updateGameSettings = useCallback(
+    (changes: Partial<GameSettings>) => {
+      setGameSettings((current) => ({
+        ...current,
+        ...changes,
+      }))
+    },
+    []
+  )
 
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? null
@@ -511,6 +596,7 @@ function App() {
             onResetLayout={resetLayout}
             previewOpen={previewOpen}
             onTogglePreview={() => setPreviewOpen((current) => !current)}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         ),
       },
@@ -529,6 +615,19 @@ function App() {
         children: <ProjectPanel panels={panels} />,
       },
       {
+        id: 'settings',
+        title: 'GAME SETTINGS',
+        minWidth: 270,
+        minHeight: 220,
+        children: (
+          <GameSettingsPanel
+            settings={gameSettings}
+            onChange={updateGameSettings}
+            onClose={() => setSettingsOpen(false)}
+          />
+        ),
+      },
+      {
         id: 'inspector',
         title: 'PROPERTIES',
         minWidth: 270,
@@ -541,7 +640,17 @@ function App() {
         ),
       },
     ],
-    [createPanel, panels, selectedPanel, updatePanel, resetLayout, previewOpen],
+    [
+      createPanel,
+      panels,
+      selectedPanel,
+      updatePanel,
+      resetLayout,
+      previewOpen,
+      gameSettings,
+      updateGameSettings,
+      settingsOpen
+    ]
   )
 
   const focusWindow = (id: WindowId) => {
@@ -585,7 +694,17 @@ function App() {
       </section>
 
       {windowConfigs
-        .filter((config) => !previewOpen || config.id === 'menu')
+        .filter((config) => {
+          if (previewOpen) {
+            return config.id === 'menu'
+          }
+
+          if (config.id === 'settings') {
+            return settingsOpen
+          }
+
+          return true
+        })
         .map((config) => (
           <FloatingWindow
             key={config.id}
