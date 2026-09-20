@@ -634,7 +634,7 @@ function Editor() {
     }
   })
   const [stack, setStack] = useState<WindowId[]>(['menu', 'toolbox', 'project', 'inspector', 'settings', 'projects'])
-  const [currentProjectId, setCurrentProjectId] = useState(() => crypto.randomUUID())
+  const [currentProjectId, setCurrentProjectId] = useState<string>(() => crypto.randomUUID())
   const [projectName, setProjectName] = useState('Test Game')
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
   const [panels, setPanels] = useState<Panel[]>([])
