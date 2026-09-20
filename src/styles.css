@@ -285,3 +285,32 @@ button { color: inherit; }
 .player-error p {
   margin: 0;
 }
+
+
+.tree-grandchild {
+  padding-left: 39px;
+}
+
+.tree-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #aebfae;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-button:hover {
+  background: rgba(116, 151, 116, .1);
+  color: #d3e3d3;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin-top: 4px;
+  color: #aebfae;
+  font-size: 12px;
+}
