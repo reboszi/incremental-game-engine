@@ -4,17 +4,37 @@ const PROJECT_INDEX_KEY = 'ige-project-index-v1'
 const PROJECT_STORAGE_PREFIX = 'ige-project-v1:'
 const LEGACY_GAME_STORAGE_KEY = 'ige-game-project-v1'
 
-export const CURRENT_PROJECT_VERSION = 1
+export const CURRENT_PROJECT_VERSION = 2
 
-function isValidProject(project: GameProject) {
-  return (
-    typeof project.id === 'string' &&
-    project.id.length > 0 &&
-    project.version === CURRENT_PROJECT_VERSION &&
-    typeof project.name === 'string' &&
-    !!project.gameSettings &&
-    Array.isArray(project.panels)
-  )
+function normalizeProject(raw: unknown): GameProject | null {
+  if (!raw || typeof raw !== 'object') return null
+
+  const project = raw as Partial<GameProject>
+
+  if (
+    typeof project.id !== 'string' ||
+    project.id.length === 0 ||
+    typeof project.name !== 'string' ||
+    !project.gameSettings ||
+    !Array.isArray(project.panels)
+  ) {
+    return null
+  }
+
+  const version = Number(project.version || 1)
+
+  if (version > CURRENT_PROJECT_VERSION) {
+    return null
+  }
+
+  return {
+    id: project.id,
+    version: CURRENT_PROJECT_VERSION,
+    name: project.name,
+    gameSettings: project.gameSettings,
+    panels: project.panels,
+    resources: Array.isArray(project.resources) ? project.resources : [],
+  }
 }
 
 function readProjectIndex(): ProjectSummary[] {
@@ -43,13 +63,12 @@ function migrateLegacyProject() {
 
   try {
     const parsed = JSON.parse(legacy) as Omit<GameProject, 'id'>
-    const id = crypto.randomUUID()
-    const project: GameProject = {
+    const project = normalizeProject({
       ...parsed,
-      id,
-    }
+      id: crypto.randomUUID(),
+    })
 
-    if (!isValidProject(project)) return
+    if (!project) return
 
     saveGame(project)
     localStorage.removeItem(LEGACY_GAME_STORAGE_KEY)
@@ -66,21 +85,23 @@ export function listProjects(): ProjectSummary[] {
 }
 
 export function saveGame(project: GameProject) {
-  if (!isValidProject(project)) {
+  const normalized = normalizeProject(project)
+
+  if (!normalized) {
     throw new Error('Invalid game project')
   }
 
-  localStorage.setItem(projectStorageKey(project.id), JSON.stringify(project))
+  localStorage.setItem(projectStorageKey(project.id), JSON.stringify(normalized))
 
   const updatedAt = new Date().toISOString()
   const current = readProjectIndex()
   const next = [
     {
-      id: project.id,
-      name: project.name,
+      id: normalized.id,
+      name: normalized.name,
       updatedAt,
     },
-    ...current.filter((item) => item.id !== project.id),
+    ...current.filter((item) => item.id !== normalized.id),
   ]
 
   writeProjectIndex(next)
@@ -91,8 +112,13 @@ export function loadGame(id: string): GameProject | null {
   if (!saved) return null
 
   try {
-    const project = JSON.parse(saved) as GameProject
-    return isValidProject(project) ? project : null
+    const project = normalizeProject(JSON.parse(saved))
+
+    if (project && project.version === CURRENT_PROJECT_VERSION) {
+      localStorage.setItem(projectStorageKey(id), JSON.stringify(project))
+    }
+
+    return project
   } catch {
     return null
   }
