@@ -544,6 +544,10 @@ function Inspector({
     )
   }
 
+  if (!panel) {
+    return null
+  }
+
   return (
     <div>
       <div className="inspector-field">
