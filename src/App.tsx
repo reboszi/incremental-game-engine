@@ -1,11 +1,11 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GameProject, GameSettings, Panel, PanelSlot } from './types'
-import { CURRENT_PROJECT_VERSION, loadGame, saveGame } from './save'
+import type { GameProject, GameSettings, Panel, PanelSlot, ProjectSummary } from './types'
+import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame } from './save'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
-type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector' | 'settings'
+type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector' | 'settings' | 'projects'
 
 const PANEL_SLOTS = [
   {
@@ -99,11 +99,12 @@ const DEFAULT_GAME_SETTINGS: GameSettings = {
 const STORAGE_KEY = 'ige-editor-windows-v1'
 
 const DEFAULT_WINDOWS: Record<WindowId, WindowState> = {
-  menu: { x: 20, y: 20, width: 260, height: 180, collapsed: false },
-  toolbox: { x: 20, y: 220, width: 230, height: 360, collapsed: false },
-  project: { x: 20, y: 580, width: 280, height: 300, collapsed: false },
+  menu: { x: 20, y: 20, width: 260, height: 330, collapsed: false },
+  toolbox: { x: 20, y: 370, width: 230, height: 360, collapsed: false },
+  project: { x: 20, y: 730, width: 280, height: 300, collapsed: false },
   inspector: { x: 0, y: 20, width: 320, height: 520, collapsed: false },
-  settings: { x: 320, y: 80, width: 320, height: 300, collapsed: false },
+  settings: { x: 320, y: 80, width: 320, height: 340, collapsed: false },
+  projects: { x: 360, y: 100, width: 420, height: 420, collapsed: false },
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -279,6 +280,54 @@ function ColorField({
   )
 }
 
+function GameCanvas({
+  panels,
+  selectedPanelId = null,
+  onSelectPanel,
+  editable,
+}: {
+  panels: Panel[]
+  selectedPanelId?: string | null
+  onSelectPanel?: (id: string | null) => void
+  editable: boolean
+}) {
+  return (
+    <section
+      className="canvas"
+      aria-label={editable ? 'Game editor canvas' : 'Game'}
+      onClick={() => {
+        if (editable) onSelectPanel?.(null)
+      }}
+    >
+      {panels.map((panel) => {
+        const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
+        if (!slot) return null
+
+        return (
+          <div
+            key={panel.id}
+            className={`game-panel ${editable && selectedPanelId === panel.id ? 'selected' : ''}`}
+            onClick={(event) => {
+              if (!editable) return
+              event.stopPropagation()
+              onSelectPanel?.(panel.id)
+            }}
+            style={{
+              gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
+              gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
+              backgroundColor: panel.backgroundColor,
+              color: panel.textColor,
+              borderColor: panel.borderColor,
+            }}
+          >
+            {panel.title}
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
 function Toolbox({ onCreatePanel }: { onCreatePanel: () => void }) {
   const tools = ['Panel', 'Resource', 'Action / Task', 'State / Unlock', 'Story Event', 'Directive']
   return (
@@ -319,17 +368,70 @@ function ProjectPanel({
   )
 }
 
+function ProjectManager({
+  projects,
+  currentProjectId,
+  onOpen,
+  onDelete,
+  onClose,
+}: {
+  projects: ProjectSummary[]
+  currentProjectId: string
+  onOpen: (id: string) => void
+  onDelete: (id: string) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="project-manager">
+      {projects.length === 0 && (
+        <div className="muted">No saved games yet.</div>
+      )}
+
+      {projects.map((project) => (
+        <div className="saved-project" key={project.id}>
+          <div className="saved-project-info">
+            <strong>{project.name}</strong>
+            <span>{project.id === currentProjectId ? 'Current game' : new Date(project.updatedAt).toLocaleString()}</span>
+          </div>
+
+          <div className="saved-project-actions">
+            <button type="button" className="tool-button" onClick={() => onOpen(project.id)}>
+              Open
+            </button>
+            <button type="button" className="tool-button" onClick={() => onDelete(project.id)}>
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <button type="button" className="tool-button" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  )
+}
+
 function GameSettingsPanel({
+  projectName,
   settings,
+  onRename,
   onChange,
   onClose,
 }: {
+  projectName: string
   settings: GameSettings
+  onRename: (name: string) => void
   onChange: (changes: Partial<GameSettings>) => void
   onClose: () => void
 }) {
   return (
     <div>
+      <div className="inspector-field">
+        <label>Game name</label>
+        <input value={projectName} onChange={(event) => onRename(event.target.value)} />
+      </div>
+
       <ColorField
         label="Default panel background"
         value={settings.defaultPanelBackgroundColor}
@@ -360,11 +462,7 @@ function GameSettingsPanel({
         }
       />
 
-      <button
-        type="button"
-        className="tool-button"
-        onClick={onClose}
-      >
+      <button type="button" className="tool-button" onClick={onClose}>
         Close
       </button>
     </div>
@@ -372,40 +470,52 @@ function GameSettingsPanel({
 }
 
 function Menu({
+  onNewGame,
+  onOpenProjects,
+  onSave,
+  onPlay,
   onResetLayout,
   previewOpen,
   onTogglePreview,
   onOpenSettings,
-  onSave,
-  onLoad,
 }: {
+  onNewGame: () => void
+  onOpenProjects: () => void
+  onSave: () => void
+  onPlay: () => void
   onResetLayout: () => void
   previewOpen: boolean
   onTogglePreview: () => void
   onOpenSettings: () => void
-  onSave: () => void
-  onLoad: () => void
 }) {
   return (
     <div className="tool-list">
+      <button type="button" className="tool-button" onClick={onNewGame}>
+        New Game
+      </button>
+
+      <button type="button" className="tool-button" onClick={onOpenProjects}>
+        Open Game
+      </button>
+
       <button type="button" className="tool-button" onClick={onSave}>
         Save
       </button>
 
-      <button type="button" className="tool-button" onClick={onLoad}>
-        Load
+      <button type="button" className="tool-button" onClick={onPlay}>
+        Play
       </button>
 
-      <button type="button" className="tool-button" onClick={onResetLayout}>
-        Reset layout
+      <button type="button" className="tool-button" onClick={onOpenSettings}>
+        Settings
       </button>
 
       <button type="button" className="tool-button" onClick={onTogglePreview}>
         {previewOpen ? 'Back to editor' : 'Preview'}
       </button>
 
-      <button type="button" className="tool-button" onClick={onOpenSettings}>
-        Settings
+      <button type="button" className="tool-button" onClick={onResetLayout}>
+        Reset layout
       </button>
     </div>
   )
@@ -431,7 +541,7 @@ function Inspector({
   return (
     <div>
       <div className="inspector-field">
-        <label>Title </label>
+        <label>Title</label>
         <input
           value={panel.title}
           onChange={(event) =>
@@ -443,7 +553,7 @@ function Inspector({
       </div>
 
       <div className="inspector-field">
-        <label>Slot </label>
+        <label>Slot</label>
         <select
           value={panel.slot}
           onChange={(event) =>
@@ -493,7 +603,26 @@ function Inspector({
   )
 }
 
-function App() {
+function Player({ projectId }: { projectId: string }) {
+  const project = loadGame(projectId)
+
+  if (!project) {
+    return (
+      <main className="player-shell player-error">
+        <h1>Game not found</h1>
+        <p>This game is not saved in this browser.</p>
+      </main>
+    )
+  }
+
+  return (
+    <main className="player-shell">
+      <GameCanvas panels={project.panels} editable={false} />
+    </main>
+  )
+}
+
+function Editor() {
   const [windows, setWindows] = useState<Record<WindowId, WindowState>>(() => {
     const loaded = loadWindowState()
     return {
@@ -504,15 +633,16 @@ function App() {
       },
     }
   })
-  const [stack, setStack] = useState<WindowId[]>(['menu', 'toolbox', 'project', 'inspector'])
+  const [stack, setStack] = useState<WindowId[]>(['menu', 'toolbox', 'project', 'inspector', 'settings', 'projects'])
+  const [currentProjectId, setCurrentProjectId] = useState(() => crypto.randomUUID())
   const [projectName, setProjectName] = useState('Test Game')
-  const [gameSettings, setGameSettings] = useState<GameSettings>(
-    DEFAULT_GAME_SETTINGS
-  )
+  const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
   const [panels, setPanels] = useState<Panel[]>([])
+  const [projects, setProjects] = useState<ProjectSummary[]>(() => listProjects())
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(windows))
@@ -522,19 +652,23 @@ function App() {
     const keepOnScreen = () => {
       setWindows((current) => {
         const next = { ...current }
-          ; (Object.keys(next) as WindowId[]).forEach((id) => {
-            const win = next[id]
-            next[id] = {
-              ...win,
-              x: clamp(win.x, 0, Math.max(0, window.innerWidth - win.width)),
-              y: clamp(win.y, 0, Math.max(0, window.innerHeight - 42)),
-            }
-          })
+        ;(Object.keys(next) as WindowId[]).forEach((id) => {
+          const win = next[id]
+          next[id] = {
+            ...win,
+            x: clamp(win.x, 0, Math.max(0, window.innerWidth - win.width)),
+            y: clamp(win.y, 0, Math.max(0, window.innerHeight - 42)),
+          }
+        })
         return next
       })
     }
     window.addEventListener('resize', keepOnScreen)
     return () => window.removeEventListener('resize', keepOnScreen)
+  }, [])
+
+  const refreshProjects = useCallback(() => {
+    setProjects(listProjects())
   }, [])
 
   const createPanel = useCallback(() => {
@@ -573,29 +707,85 @@ function App() {
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? null
 
+  const buildProject = useCallback((): GameProject => ({
+    id: currentProjectId,
+    version: CURRENT_PROJECT_VERSION,
+    name: projectName.trim() || 'Untitled Game',
+    gameSettings,
+    panels,
+  }), [currentProjectId, projectName, gameSettings, panels])
+
   const saveProject = useCallback(() => {
+    saveGame(buildProject())
+    refreshProjects()
+  }, [buildProject, refreshProjects])
+
+  const newProject = useCallback(() => {
+    const requestedName = window.prompt('Game name', 'New Game')
+    if (requestedName === null) return
+
+    const id = crypto.randomUUID()
+    const name = requestedName.trim() || 'Untitled Game'
     const project: GameProject = {
+      id,
       version: CURRENT_PROJECT_VERSION,
-      name: projectName,
-      gameSettings,
-      panels,
+      name,
+      gameSettings: { ...DEFAULT_GAME_SETTINGS },
+      panels: [],
     }
 
     saveGame(project)
-  }, [projectName, gameSettings, panels])
+    setCurrentProjectId(id)
+    setProjectName(name)
+    setGameSettings({ ...DEFAULT_GAME_SETTINGS })
+    setPanels([])
+    setSelectedPanelId(null)
+    setSettingsOpen(false)
+    setProjectsOpen(false)
+    refreshProjects()
+  }, [refreshProjects])
 
-  const loadProject = useCallback(() => {
-    const project = loadGame()
+  const openProject = useCallback((id: string) => {
+    const project = loadGame(id)
+    if (!project) return
 
-    if (!project) {
-      return
-    }
-
+    setCurrentProjectId(project.id)
     setProjectName(project.name)
     setGameSettings(project.gameSettings)
     setPanels(project.panels)
     setSelectedPanelId(null)
+    setProjectsOpen(false)
   }, [])
+
+  const removeProject = useCallback((id: string) => {
+    const project = projects.find((item) => item.id === id)
+    if (!project) return
+
+    if (!window.confirm(`Delete "${project.name}"?`)) return
+
+    deleteGame(id)
+    refreshProjects()
+
+    if (id === currentProjectId) {
+      const newId = crypto.randomUUID()
+      setCurrentProjectId(newId)
+      setProjectName('New Game')
+      setGameSettings({ ...DEFAULT_GAME_SETTINGS })
+      setPanels([])
+      setSelectedPanelId(null)
+    }
+  }, [projects, currentProjectId, refreshProjects])
+
+  const playProject = useCallback(() => {
+    saveGame(buildProject())
+    refreshProjects()
+
+    const url = new URL(window.location.href)
+    url.search = ''
+    url.searchParams.set('play', currentProjectId)
+    url.hash = ''
+    window.open(url.toString(), '_blank')
+  }, [buildProject, currentProjectId, refreshProjects])
 
   const resetLayout = useCallback(() => {
     setWindows({
@@ -609,7 +799,7 @@ function App() {
       },
     })
 
-    setStack(['menu', 'toolbox', 'project', 'inspector'])
+    setStack(['menu', 'toolbox', 'project', 'inspector', 'settings', 'projects'])
   }, [])
 
   const windowConfigs = useMemo<WindowConfig[]>(
@@ -621,12 +811,17 @@ function App() {
         minHeight: 120,
         children: (
           <Menu
+            onNewGame={newProject}
+            onOpenProjects={() => {
+              refreshProjects()
+              setProjectsOpen(true)
+            }}
+            onSave={saveProject}
+            onPlay={playProject}
             onResetLayout={resetLayout}
             previewOpen={previewOpen}
             onTogglePreview={() => setPreviewOpen((current) => !current)}
             onOpenSettings={() => setSettingsOpen(true)}
-            onSave={saveProject}
-            onLoad={loadProject}
           />
         ),
       },
@@ -651,9 +846,26 @@ function App() {
         minHeight: 220,
         children: (
           <GameSettingsPanel
+            projectName={projectName}
             settings={gameSettings}
+            onRename={setProjectName}
             onChange={updateGameSettings}
             onClose={() => setSettingsOpen(false)}
+          />
+        ),
+      },
+      {
+        id: 'projects',
+        title: 'OPEN GAME',
+        minWidth: 340,
+        minHeight: 260,
+        children: (
+          <ProjectManager
+            projects={projects}
+            currentProjectId={currentProjectId}
+            onOpen={openProject}
+            onDelete={removeProject}
+            onClose={() => setProjectsOpen(false)}
           />
         ),
       },
@@ -672,17 +884,22 @@ function App() {
     ],
     [
       createPanel,
-      panels,
-      selectedPanel,
-      updatePanel,
-      resetLayout,
-      previewOpen,
+      currentProjectId,
       gameSettings,
-      updateGameSettings,
-      settingsOpen,
+      newProject,
+      openProject,
+      panels,
+      playProject,
+      previewOpen,
       projectName,
+      projects,
+      refreshProjects,
+      removeProject,
+      resetLayout,
       saveProject,
-      loadProject
+      selectedPanel,
+      updateGameSettings,
+      updatePanel,
     ]
   )
 
@@ -696,35 +913,12 @@ function App() {
 
   return (
     <main className="editor-shell">
-
-      <section className="canvas" aria-label="Game flow canvas" onClick={() => setSelectedPanelId(null)}>
-
-        {panels.map((panel) => {
-          const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
-
-          if (!slot) return null
-
-          return (
-            <div
-              key={panel.id}
-              className={`game-panel ${selectedPanelId === panel.id ? 'selected' : ''}`}
-              onClick={(event) => {
-                event.stopPropagation()
-                setSelectedPanelId(panel.id)
-              }}
-              style={{
-                gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
-                gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
-                backgroundColor: panel.backgroundColor,
-                color: panel.textColor,
-                borderColor: panel.borderColor,
-              }}
-            >
-              {panel.title}
-            </div>
-          )
-        })}
-      </section>
+      <GameCanvas
+        panels={panels}
+        selectedPanelId={selectedPanelId}
+        onSelectPanel={setSelectedPanelId}
+        editable
+      />
 
       {windowConfigs
         .filter((config) => {
@@ -734,6 +928,10 @@ function App() {
 
           if (config.id === 'settings') {
             return settingsOpen
+          }
+
+          if (config.id === 'projects') {
+            return projectsOpen
           }
 
           return true
@@ -755,6 +953,16 @@ function App() {
         ))}
     </main>
   )
+}
+
+function App() {
+  const playProjectId = new URLSearchParams(window.location.search).get('play')
+
+  if (playProjectId) {
+    return <Player projectId={playProjectId} />
+  }
+
+  return <Editor />
 }
 
 export default App
