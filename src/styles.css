@@ -218,3 +218,70 @@ button { color: inherit; }
   min-width: 0;
   height: 32px;
 }
+
+
+.project-manager {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-project {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #2f412f;
+  background: #111911;
+}
+
+.saved-project-info {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.saved-project-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c6dbc6;
+}
+
+.saved-project-info span {
+  color: #738673;
+  font-size: 11px;
+}
+
+.saved-project-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.saved-project-actions .tool-button {
+  min-height: 30px;
+  padding: 0 9px;
+}
+
+.player-shell {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0a0f0a;
+}
+
+.player-shell .canvas {
+  background-image: none;
+}
+
+.player-error {
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.player-error h1,
+.player-error p {
+  margin: 0;
+}
