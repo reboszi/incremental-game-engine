@@ -25,8 +25,15 @@ export type Panel = {
 }
 
 export type GameProject = {
+  id: string
   version: number
   name: string
   gameSettings: GameSettings
   panels: Panel[]
+}
+
+export type ProjectSummary = {
+  id: string
+  name: string
+  updatedAt: string
 }
