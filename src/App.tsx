@@ -1,5 +1,5 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GameProject, GameSettings, Panel, PanelSlot, ProjectSummary } from './types'
+import type { GameProject, GameSettings, Panel, PanelSlot, ProjectSummary, Resource } from './types'
 import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame } from './save'
 import { PANEL_SLOTS } from './layout'
 import { GameCanvas } from './GameCanvas'
@@ -208,12 +208,24 @@ function ColorField({
   )
 }
 
-function Toolbox({ onCreatePanel }: { onCreatePanel: () => void }) {
+function Toolbox({
+  onCreatePanel,
+  onCreateResource,
+}: {
+  onCreatePanel: () => void
+  onCreateResource: () => void
+}) {
   const tools = ['Panel', 'Resource', 'Action / Task', 'State / Unlock', 'Story Event', 'Directive']
+
+  const handleTool = (tool: string) => {
+    if (tool === 'Panel') onCreatePanel()
+    if (tool === 'Resource') onCreateResource()
+  }
+
   return (
     <div className="tool-list">
       {tools.map((tool) => (
-        <button type="button" className="tool-button" key={tool} onClick={tool === 'Panel' ? onCreatePanel : undefined}>
+        <button type="button" className="tool-button" key={tool} onClick={() => handleTool(tool)}>
           <span className="tool-plus">+</span>
           <span>{tool}</span>
         </button>
@@ -225,9 +237,15 @@ function Toolbox({ onCreatePanel }: { onCreatePanel: () => void }) {
 function ProjectPanel({
   projectName,
   panels,
+  resources,
+  onSelectPanel,
+  onSelectResource,
 }: {
   projectName: string
   panels: Panel[]
+  resources: Resource[]
+  onSelectPanel: (id: string) => void
+  onSelectResource: (id: string) => void
 }) {
   return (
     <div className="project-tree">
@@ -235,12 +253,29 @@ function ProjectPanel({
       <div className="tree-row tree-child muted">Panels</div>
 
       {panels.map((panel) => (
-        <div className="tree-row tree-grandchild" key={panel.id}>
+        <button
+          type="button"
+          className="tree-row tree-grandchild tree-button"
+          key={panel.id}
+          onClick={() => onSelectPanel(panel.id)}
+        >
           {panel.title}
-        </div>
+        </button>
       ))}
 
       <div className="tree-row tree-child muted">Resources</div>
+
+      {resources.map((resource) => (
+        <button
+          type="button"
+          className="tree-row tree-grandchild tree-button"
+          key={resource.id}
+          onClick={() => onSelectResource(resource.id)}
+        >
+          {resource.name}
+        </button>
+      ))}
+
       <div className="tree-row tree-child muted">Actions</div>
       <div className="tree-row tree-child muted">Story</div>
       <div className="tree-row tree-child muted">Directives</div>
@@ -403,17 +438,108 @@ function Menu({
 
 function Inspector({
   panel,
+  resource,
   onUpdatePanel,
+  onUpdateResource,
 }: {
   panel: Panel | null
+  resource: Resource | null
   onUpdatePanel: (id: string, changes: Partial<Panel>) => void
+  onUpdateResource: (id: string, changes: Partial<Resource>) => void
 }) {
-  if (!panel) {
+  if (!panel && !resource) {
     return (
       <div className="inspector-empty">
         <div className="inspector-icon">◇</div>
         <strong>Nothing selected</strong>
         <span>Select an element on the canvas to edit its properties.</span>
+      </div>
+    )
+  }
+
+  if (resource) {
+    return (
+      <div>
+        <div className="inspector-field">
+          <label>Name</label>
+          <input
+            value={resource.name}
+            onChange={(event) =>
+              onUpdateResource(resource.id, {
+                name: event.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="inspector-field">
+          <label>Initial value</label>
+          <input
+            type="number"
+            value={resource.initialValue}
+            onChange={(event) =>
+              onUpdateResource(resource.id, {
+                initialValue: Number(event.target.value),
+              })
+            }
+          />
+        </div>
+
+        <div className="inspector-field">
+          <label>Maximum value</label>
+          <input
+            type="number"
+            placeholder="No maximum"
+            value={resource.maxValue ?? ''}
+            onChange={(event) =>
+              onUpdateResource(resource.id, {
+                maxValue: event.target.value === '' ? null : Number(event.target.value),
+              })
+            }
+          />
+        </div>
+
+        <div className="inspector-field">
+          <label>Unit</label>
+          <input
+            value={resource.unit}
+            placeholder="%, MW, MB..."
+            onChange={(event) =>
+              onUpdateResource(resource.id, {
+                unit: event.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="inspector-field">
+          <label>Display</label>
+          <select
+            value={resource.displayMode}
+            onChange={(event) =>
+              onUpdateResource(resource.id, {
+                displayMode: event.target.value as Resource['displayMode'],
+              })
+            }
+          >
+            <option value="value">Value</option>
+            <option value="value-max">Value / Max</option>
+            <option value="bar">Bar</option>
+          </select>
+        </div>
+
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={resource.initiallyVisible}
+            onChange={(event) =>
+              onUpdateResource(resource.id, {
+                initiallyVisible: event.target.checked,
+              })
+            }
+          />
+          Visible at game start
+        </label>
       </div>
     )
   }
@@ -499,8 +625,10 @@ function Editor() {
   const [projectName, setProjectName] = useState('Test Game')
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
   const [panels, setPanels] = useState<Panel[]>([])
+  const [resources, setResources] = useState<Resource[]>([])
   const [projects, setProjects] = useState<ProjectSummary[]>(() => listProjects())
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(false)
@@ -545,12 +673,38 @@ function Editor() {
     setPanels((current) => [...current, newPanel])
   }, [gameSettings])
 
+  const createResource = useCallback(() => {
+    const newResource: Resource = {
+      id: crypto.randomUUID(),
+      name: 'New Resource',
+      initialValue: 0,
+      maxValue: null,
+      unit: '',
+      displayMode: 'value',
+      initiallyVisible: true,
+    }
+
+    setResources((current) => [...current, newResource])
+    setSelectedPanelId(null)
+    setSelectedResourceId(newResource.id)
+  }, [])
+
   const updatePanel = useCallback((id: string, changes: Partial<Panel>) => {
     setPanels((current) =>
       current.map((panel) =>
         panel.id === id
           ? { ...panel, ...changes }
           : panel
+      )
+    )
+  }, [])
+
+  const updateResource = useCallback((id: string, changes: Partial<Resource>) => {
+    setResources((current) =>
+      current.map((resource) =>
+        resource.id === id
+          ? { ...resource, ...changes }
+          : resource
       )
     )
   }, [])
@@ -568,13 +722,17 @@ function Editor() {
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? null
 
+  const selectedResource =
+    resources.find((resource) => resource.id === selectedResourceId) ?? null
+
   const buildProject = useCallback((): GameProject => ({
     id: currentProjectId,
     version: CURRENT_PROJECT_VERSION,
     name: projectName.trim() || 'Untitled Game',
     gameSettings,
     panels,
-  }), [currentProjectId, projectName, gameSettings, panels])
+    resources,
+  }), [currentProjectId, projectName, gameSettings, panels, resources])
 
   const saveProject = useCallback(() => {
     saveGame(buildProject())
@@ -593,6 +751,7 @@ function Editor() {
       name,
       gameSettings: { ...DEFAULT_GAME_SETTINGS },
       panels: [],
+      resources: [],
     }
 
     saveGame(project)
@@ -600,7 +759,9 @@ function Editor() {
     setProjectName(name)
     setGameSettings({ ...DEFAULT_GAME_SETTINGS })
     setPanels([])
+    setResources([])
     setSelectedPanelId(null)
+    setSelectedResourceId(null)
     setSettingsOpen(false)
     setProjectsOpen(false)
     refreshProjects()
@@ -614,7 +775,9 @@ function Editor() {
     setProjectName(project.name)
     setGameSettings(project.gameSettings)
     setPanels(project.panels)
+    setResources(project.resources)
     setSelectedPanelId(null)
+    setSelectedResourceId(null)
     setProjectsOpen(false)
   }, [])
 
@@ -633,7 +796,9 @@ function Editor() {
       setProjectName('New Game')
       setGameSettings({ ...DEFAULT_GAME_SETTINGS })
       setPanels([])
+      setResources([])
       setSelectedPanelId(null)
+      setSelectedResourceId(null)
     }
   }, [projects, currentProjectId, refreshProjects])
 
@@ -691,14 +856,28 @@ function Editor() {
         title: 'TOOLBOX',
         minWidth: 190,
         minHeight: 210,
-        children: <Toolbox onCreatePanel={createPanel} />,
+        children: <Toolbox onCreatePanel={createPanel} onCreateResource={createResource} />,
       },
       {
         id: 'project',
         title: 'PROJECT',
         minWidth: 220,
         minHeight: 180,
-        children: <ProjectPanel projectName={projectName} panels={panels} />,
+        children: (
+          <ProjectPanel
+            projectName={projectName}
+            panels={panels}
+            resources={resources}
+            onSelectPanel={(id) => {
+              setSelectedPanelId(id)
+              setSelectedResourceId(null)
+            }}
+            onSelectResource={(id) => {
+              setSelectedResourceId(id)
+              setSelectedPanelId(null)
+            }}
+          />
+        ),
       },
       {
         id: 'settings',
@@ -738,18 +917,22 @@ function Editor() {
         children: (
           <Inspector
             panel={selectedPanel}
+            resource={selectedResource}
             onUpdatePanel={updatePanel}
+            onUpdateResource={updateResource}
           />
         ),
       },
     ],
     [
       createPanel,
+      createResource,
       currentProjectId,
       gameSettings,
       newProject,
       openProject,
       panels,
+      resources,
       playProject,
       previewOpen,
       projectName,
@@ -759,8 +942,10 @@ function Editor() {
       resetLayout,
       saveProject,
       selectedPanel,
+      selectedResource,
       updateGameSettings,
       updatePanel,
+      updateResource,
     ]
   )
 
@@ -777,7 +962,10 @@ function Editor() {
       <GameCanvas
         panels={panels}
         selectedPanelId={selectedPanelId}
-        onSelectPanel={setSelectedPanelId}
+        onSelectPanel={(id) => {
+          setSelectedPanelId(id)
+          if (id) setSelectedResourceId(null)
+        }}
         editable
       />
 
