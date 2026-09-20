@@ -1,86 +1,14 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GameProject, GameSettings, Panel, PanelSlot, ProjectSummary } from './types'
 import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame } from './save'
+import { PANEL_SLOTS } from './layout'
+import { GameCanvas } from './GameCanvas'
+import { Player } from './Player'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type WindowState = Point & Size & { collapsed: boolean }
 type WindowId = 'menu' | 'toolbox' | 'project' | 'inspector' | 'settings' | 'projects'
-
-const PANEL_SLOTS = [
-  {
-    value: 'top',
-    label: 'Top',
-    rowStart: 1,
-    rowSpan: 1,
-    columnStart: 1,
-    columnSpan: 5,
-  },
-  {
-    value: 'top-inner',
-    label: 'Top Inner',
-    rowStart: 2,
-    rowSpan: 1,
-    columnStart: 2,
-    columnSpan: 3,
-  },
-  {
-    value: 'left-outer',
-    label: 'Left Outer',
-    rowStart: 2,
-    rowSpan: 4,
-    columnStart: 1,
-    columnSpan: 1,
-  },
-  {
-    value: 'left-inner',
-    label: 'Left Inner',
-    rowStart: 3,
-    rowSpan: 1,
-    columnStart: 2,
-    columnSpan: 1,
-  },
-  {
-    value: 'center',
-    label: 'Center',
-    rowStart: 3,
-    rowSpan: 1,
-    columnStart: 3,
-    columnSpan: 1,
-  },
-  {
-    value: 'right-inner',
-    label: 'Right Inner',
-    rowStart: 3,
-    rowSpan: 1,
-    columnStart: 4,
-    columnSpan: 1,
-  },
-  {
-    value: 'right-outer',
-    label: 'Right Outer',
-    rowStart: 2,
-    rowSpan: 4,
-    columnStart: 5,
-    columnSpan: 1,
-  },
-  {
-    value: 'bottom-inner',
-    label: 'Bottom Inner',
-    rowStart: 4,
-    rowSpan: 1,
-    columnStart: 2,
-    columnSpan: 3,
-  },
-  {
-    value: 'bottom',
-    label: 'Bottom',
-    rowStart: 5,
-    rowSpan: 1,
-    columnStart: 2,
-    columnSpan: 3,
-  },
-] as const
 
 type WindowConfig = {
   id: WindowId
@@ -277,54 +205,6 @@ function ColorField({
         />
       </div>
     </div>
-  )
-}
-
-function GameCanvas({
-  panels,
-  selectedPanelId = null,
-  onSelectPanel,
-  editable,
-}: {
-  panels: Panel[]
-  selectedPanelId?: string | null
-  onSelectPanel?: (id: string | null) => void
-  editable: boolean
-}) {
-  return (
-    <section
-      className="canvas"
-      aria-label={editable ? 'Game editor canvas' : 'Game'}
-      onClick={() => {
-        if (editable) onSelectPanel?.(null)
-      }}
-    >
-      {panels.map((panel) => {
-        const slot = PANEL_SLOTS.find((item) => item.value === panel.slot)
-        if (!slot) return null
-
-        return (
-          <div
-            key={panel.id}
-            className={`game-panel ${editable && selectedPanelId === panel.id ? 'selected' : ''}`}
-            onClick={(event) => {
-              if (!editable) return
-              event.stopPropagation()
-              onSelectPanel?.(panel.id)
-            }}
-            style={{
-              gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
-              gridColumn: `${slot.columnStart} / span ${slot.columnSpan}`,
-              backgroundColor: panel.backgroundColor,
-              color: panel.textColor,
-              borderColor: panel.borderColor,
-            }}
-          >
-            {panel.title}
-          </div>
-        )
-      })}
-    </section>
   )
 }
 
@@ -600,25 +480,6 @@ function Inspector({
         }
       />
     </div>
-  )
-}
-
-function Player({ projectId }: { projectId: string }) {
-  const project = loadGame(projectId)
-
-  if (!project) {
-    return (
-      <main className="player-shell player-error">
-        <h1>Game not found</h1>
-        <p>This game is not saved in this browser.</p>
-      </main>
-    )
-  }
-
-  return (
-    <main className="player-shell">
-      <GameCanvas panels={project.panels} editable={false} />
-    </main>
   )
 }
 
