@@ -49,13 +49,20 @@ export function Inspector({
         </div>
         <div className="inspector-field">
           <label>Icon</label>
-          <input
-            type="text"
-            value={resource.icon}
-            maxLength={8}
-            placeholder="⚡"
-            onChange={event => onUpdateResource(resource.id, { icon: event.target.value })}
-          />
+          <div className="resource-icon-entry">
+            <input
+              type="text"
+              value={resource.icon}
+              maxLength={8}
+              placeholder="⚡"
+              aria-label="Resource icon: emoji or up to two letters"
+              onChange={event => onUpdateResource(resource.id, {
+                icon: Array.from(event.target.value).slice(0, 2).join(''),
+              })}
+            />
+            <span className="resource-icon-preview" aria-label="Icon preview">{resource.icon || '◇'}</span>
+          </div>
+          <span className="resource-icon-help">One emoji or up to two letters (e.g. MB).</span>
           <div className="resource-icon-choices">
             {['⚡','🧠','💾','⚙️','🔋','🧪','🪨','🪵','💧','🔥','💎','🛠️','🧭','⭐','◇'].map(icon => (
               <button type="button" key={icon} className={resource.icon === icon ? 'chosen' : ''}
