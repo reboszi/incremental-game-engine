@@ -4,7 +4,7 @@ import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame }
 import { GameCanvas } from './GameCanvas'
 import { Player } from './Player'
 import { ProjectPanel } from './ProjectPanel'
-import { placeResource } from './panelItems'
+import { placeResource, setResourcePanel } from './panelItems'
 import { ColorField } from './ColorField'
 import { Inspector } from './Inspector'
 import { FloatingWindow, type WindowId, type WindowState } from './FloatingWindow'
@@ -296,6 +296,7 @@ function Editor() {
     const newResource: Resource = {
       id: crypto.randomUUID(),
       name: 'New Resource',
+      icon: '◇',
       initialValue: 0,
       maxValue: null,
       unit: '',
@@ -318,8 +319,12 @@ function Editor() {
     )
   }, [])
 
-  const assignResource = useCallback((resourceId: string, panelId: string, beforeItemId?: string) => {
-    setPanels(current => placeResource(current, resourceId, panelId, beforeItemId))
+  const assignResource = useCallback((resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => {
+    setPanels(current => placeResource(current, resourceId, panelId, beforeItemId, itemId))
+  }, [])
+
+  const toggleResourcePanel = useCallback((resourceId: string, panelId: string, enabled: boolean) => {
+    setPanels(current => setResourcePanel(current, resourceId, panelId, enabled))
   }, [])
 
   const updateResource = useCallback((id: string, changes: Partial<Resource>) => {
@@ -543,7 +548,7 @@ function Editor() {
             panel={selectedPanel}
             resource={selectedResource}
             panels={panels}
-            onPlaceResource={assignResource}
+            onToggleResourcePanel={toggleResourcePanel}
             onUpdatePanel={updatePanel}
             onUpdateResource={updateResource}
           />
@@ -573,6 +578,7 @@ function Editor() {
       updateGameSettings,
       updatePanel,
       updateResource,
+      toggleResourcePanel,
     ]
   )
 
