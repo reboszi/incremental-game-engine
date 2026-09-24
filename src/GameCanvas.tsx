@@ -48,7 +48,7 @@ export function GameCanvas({
         return (
           <div
             key={panel.id}
-            className={`game-panel ${editable && selectedPanelId === panel.id ? 'selected' : ''}`}
+            className={`game-panel game-panel--${slot.direction} ${editable && selectedPanelId === panel.id ? 'selected' : ''}`}
             onClick={event => {
               if (!editable) return
               event.stopPropagation()
