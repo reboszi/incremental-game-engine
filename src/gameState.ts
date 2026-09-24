@@ -41,7 +41,7 @@ export function loadGameState(projectId: string, resources: Resource[]): GameSta
     resourceValues: Object.fromEntries(resources.map(resource => [
       resource.id,
       clampResourceValue(resource,
-        typeof saved[resource.id] === 'number' ? saved[resource.id] : resource.initialValue),
+        typeof saved[resource.id] === 'number' ? (saved[resource.id] as number) : resource.initialValue),
     ])),
   }
 }
