@@ -314,3 +314,19 @@ button { color: inherit; }
   color: #aebfae;
   font-size: 12px;
 }
+
+
+.game-panel-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+.panel-content { display: flex; gap: 8px; align-items: flex-start; min-height: 16px; }
+.panel-content--horizontal { flex-direction: row; flex-wrap: wrap; }
+.panel-content--vertical { flex-direction: column; align-items: stretch; }
+.panel-item { flex: 0 1 auto; min-width: 110px; cursor: grab; }
+.panel-item:active { cursor: grabbing; }
+.resource-view { padding: 7px 10px; background: rgba(75, 115, 83, .14); border: 1px solid rgba(118, 165, 126, .35); border-radius: 4px; display: grid; gap: 4px; font-size: 12px; }
+.resource-view-name { color: inherit; opacity: .78; }
+.resource-view-value { font-weight: 700; }
+.resource-view-track { height: 5px; background: rgba(0,0,0,.45); border-radius: 3px; overflow: hidden; }
+.resource-view-fill { height: 100%; background: #8bc796; }
+.tree-attached { padding-left: 58px; opacity: .85; }
+.panel-drop-target { border-left: 2px solid transparent; }
+.panel-drop-target:hover { border-left-color: #8bc796; }
