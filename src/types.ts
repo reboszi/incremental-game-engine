@@ -15,6 +15,13 @@ export type PanelSlot =
   | 'bottom-inner'
   | 'bottom'
 
+export type PanelItem =
+  | {
+      id: string
+      type: 'resource'
+      resourceId: string
+    }
+
 export type Panel = {
   id: string
   title: string
@@ -22,6 +29,7 @@ export type Panel = {
   backgroundColor: string
   textColor: string
   borderColor: string
+  items: PanelItem[]
 }
 
 export type ResourceDisplayMode = 'value' | 'value-max' | 'bar'
