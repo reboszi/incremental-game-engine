@@ -37,6 +37,7 @@ export type ResourceDisplayMode = 'value' | 'value-max' | 'bar'
 export type Resource = {
   id: string
   name: string
+  icon: string
   initialValue: number
   maxValue: number | null
   unit: string
