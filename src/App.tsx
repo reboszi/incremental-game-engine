@@ -4,6 +4,8 @@ import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame }
 import { PANEL_SLOTS } from './layout'
 import { GameCanvas } from './GameCanvas'
 import { Player } from './Player'
+import { ProjectPanel } from './ProjectPanel'
+import { findResourcePanel, placeResource } from './panelItems'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
@@ -234,55 +236,6 @@ function Toolbox({
   )
 }
 
-function ProjectPanel({
-  projectName,
-  panels,
-  resources,
-  onSelectPanel,
-  onSelectResource,
-}: {
-  projectName: string
-  panels: Panel[]
-  resources: Resource[]
-  onSelectPanel: (id: string) => void
-  onSelectResource: (id: string) => void
-}) {
-  return (
-    <div className="project-tree">
-      <div className="tree-row tree-root">▾ {projectName}</div>
-      <div className="tree-row tree-child muted">Panels</div>
-
-      {panels.map((panel) => (
-        <button
-          type="button"
-          className="tree-row tree-grandchild tree-button"
-          key={panel.id}
-          onClick={() => onSelectPanel(panel.id)}
-        >
-          {panel.title}
-        </button>
-      ))}
-
-      <div className="tree-row tree-child muted">Resources</div>
-
-      {resources.map((resource) => (
-        <button
-          type="button"
-          className="tree-row tree-grandchild tree-button"
-          key={resource.id}
-          onClick={() => onSelectResource(resource.id)}
-        >
-          {resource.name}
-        </button>
-      ))}
-
-      <div className="tree-row tree-child muted">Actions</div>
-      <div className="tree-row tree-child muted">Story</div>
-      <div className="tree-row tree-child muted">Directives</div>
-    </div>
-  )
-}
-
 function ProjectManager({
   projects,
   currentProjectId,
@@ -441,11 +394,15 @@ function Inspector({
   resource,
   onUpdatePanel,
   onUpdateResource,
+  panels,
+  onPlaceResource,
 }: {
   panel: Panel | null
   resource: Resource | null
+  panels: Panel[]
   onUpdatePanel: (id: string, changes: Partial<Panel>) => void
   onUpdateResource: (id: string, changes: Partial<Resource>) => void
+  onPlaceResource: (resourceId: string, panelId: string) => void
 }) {
   if (!panel && !resource) {
     return (
@@ -460,6 +417,13 @@ function Inspector({
   if (resource) {
     return (
       <div>
+        <div className="inspector-field">
+          <label>Panel</label>
+          <select value={findResourcePanel(panels, resource.id)} onChange={event => onPlaceResource(resource.id, event.target.value)}>
+            <option value="">Unassigned</option>
+            {panels.map(panel => <option key={panel.id} value={panel.id}>{panel.title}</option>)}
+          </select>
+        </div>
         <div className="inspector-field">
           <label>Name</label>
           <input
@@ -672,6 +636,7 @@ function Editor() {
       backgroundColor: gameSettings.defaultPanelBackgroundColor,
       textColor: gameSettings.defaultPanelTextColor,
       borderColor: gameSettings.defaultPanelBorderColor,
+      items: [],
     }
 
     setPanels((current) => [...current, newPanel])
@@ -701,6 +666,10 @@ function Editor() {
           : panel
       )
     )
+  }, [])
+
+  const assignResource = useCallback((resourceId: string, panelId: string, beforeItemId?: string) => {
+    setPanels(current => placeResource(current, resourceId, panelId, beforeItemId))
   }, [])
 
   const updateResource = useCallback((id: string, changes: Partial<Resource>) => {
@@ -880,6 +849,7 @@ function Editor() {
               setSelectedResourceId(id)
               setSelectedPanelId(null)
             }}
+            onPlaceResource={assignResource}
           />
         ),
       },
@@ -922,6 +892,8 @@ function Editor() {
           <Inspector
             panel={selectedPanel}
             resource={selectedResource}
+            panels={panels}
+            onPlaceResource={assignResource}
             onUpdatePanel={updatePanel}
             onUpdateResource={updateResource}
           />
@@ -931,6 +903,7 @@ function Editor() {
     [
       createPanel,
       createResource,
+      assignResource,
       currentProjectId,
       gameSettings,
       newProject,
@@ -965,6 +938,9 @@ function Editor() {
     <main className="editor-shell">
       <GameCanvas
         panels={panels}
+        resources={resources}
+        onPlaceResource={assignResource}
+        onSelectResource={(id) => { setSelectedResourceId(id); setSelectedPanelId(null) }}
         selectedPanelId={selectedPanelId}
         onSelectPanel={(id) => {
           setSelectedPanelId(id)
