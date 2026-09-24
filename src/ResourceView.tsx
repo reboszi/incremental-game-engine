@@ -1,7 +1,6 @@
 import type { Resource } from './types'
 
-export function ResourceView({ resource }: { resource: Resource }) {
-  const value = resource.initialValue
+export function ResourceView({ resource, value = resource.initialValue }: { resource: Resource; value?: number }) {
   const suffix = resource.unit ? ` ${resource.unit}` : ''
   const max = resource.maxValue
   const hasMax = max !== null && max > 0 && Number.isFinite(max)
