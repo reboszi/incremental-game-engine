@@ -15,7 +15,7 @@ export function Player({ projectId }: { projectId: string }) {
 
   return (
     <main className="player-shell">
-      <GameCanvas panels={project.panels} editable={false} />
+      <GameCanvas panels={project.panels} resources={project.resources} editable={false} />
     </main>
   )
 }
