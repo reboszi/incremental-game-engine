@@ -350,3 +350,61 @@ button { color: inherit; }
 .resource-icon-choices button { width: 30px; height: 30px; background: #152117; border: 1px solid #3c543f; border-radius: 4px; cursor: pointer; }
 .resource-icon-choices button.chosen { border-color: #b0deb6; background: #29452f; }
 .resource-panel-checkboxes { display: grid; gap: 2px; max-height: 160px; overflow: auto; padding: 4px 8px; border: 1px solid #344734; }
+
+
+/* Collapsible runtime resource tester (Player only). */
+.runtime-test-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(65vh, 560px);
+  border: 1px solid #55765d;
+  border-radius: 6px;
+  background: rgba(13, 25, 16, .97);
+  box-shadow: 0 10px 35px rgba(0,0,0,.6);
+  overflow: auto;
+  color: #d9e4d9;
+  font-size: 12px;
+}
+.runtime-test-panel > summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  user-select: none;
+}
+.runtime-test-body { padding: 2px 14px 14px; }
+.runtime-test-body p { color: #a4bba8; line-height: 1.4; }
+.runtime-test-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 0;
+  border-bottom: 1px solid #29402d;
+}
+.runtime-test-label { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.runtime-test-label small { color: #8fa18f; }
+.runtime-test-row strong { min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; }
+.runtime-test-body button {
+  background: #203524;
+  border: 1px solid #486b4e;
+  border-radius: 4px;
+  padding: 5px 7px;
+  cursor: pointer;
+}
+.runtime-test-body button:hover { background: #32533a; }
+.runtime-reset { margin-top: 12px; }
+.resource-icon-entry { display: flex; align-items: center; gap: 10px; }
+.resource-icon-entry input { flex: 1; }
+.resource-icon-preview {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  height: 38px;
+  font-size: 20px;
+  border: 1px solid #486b4e;
+  background: #1c3020;
+  overflow: hidden;
+}
+.resource-icon-help { font-size: 11px; color: #8fa18f; }
