@@ -1,11 +1,12 @@
 import { PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GameProject, GameSettings, Panel, PanelSlot, ProjectSummary, Resource } from './types'
+import type { GameProject, GameSettings, Panel, ProjectSummary, Resource } from './types'
 import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame } from './save'
-import { PANEL_SLOTS } from './layout'
 import { GameCanvas } from './GameCanvas'
 import { Player } from './Player'
 import { ProjectPanel } from './ProjectPanel'
-import { findResourcePanel, placeResource } from './panelItems'
+import { placeResource } from './panelItems'
+import { ColorField } from './ColorField'
+import { Inspector } from './Inspector'
 
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
@@ -39,12 +40,6 @@ const DEFAULT_WINDOWS: Record<WindowId, WindowState> = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
-}
-
-const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/
-
-function isValidHexColor(value: string) {
-  return HEX_COLOR_REGEX.test(value)
 }
 
 function loadWindowState(): Record<WindowId, WindowState> {
@@ -159,54 +154,6 @@ function FloatingWindow({
         />
       )}
     </section>
-  )
-}
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  const [text, setText] = useState(value)
-
-  useEffect(() => {
-    setText(value)
-  }, [value])
-
-  const updateText = (next: string) => {
-    setText(next)
-
-    if (isValidHexColor(next)) {
-      onChange(next)
-    }
-  }
-
-  return (
-    <div className="inspector-field">
-      <label>{label}</label>
-
-      <div className="color-input-row">
-        <input
-          type="color"
-          value={value}
-          onChange={(event) => {
-            setText(event.target.value)
-            onChange(event.target.value)
-          }}
-        />
-
-        <input
-          type="text"
-          value={text}
-          className={isValidHexColor(text) ? '' : 'invalid'}
-          onChange={(event) => updateText(event.target.value)}
-        />
-      </div>
-    </div>
   )
 }
 
@@ -385,194 +332,6 @@ function Menu({
       <button type="button" className="tool-button" onClick={onResetLayout}>
         Reset layout
       </button>
-    </div>
-  )
-}
-
-function Inspector({
-  panel,
-  resource,
-  onUpdatePanel,
-  onUpdateResource,
-  panels,
-  onPlaceResource,
-}: {
-  panel: Panel | null
-  resource: Resource | null
-  panels: Panel[]
-  onUpdatePanel: (id: string, changes: Partial<Panel>) => void
-  onUpdateResource: (id: string, changes: Partial<Resource>) => void
-  onPlaceResource: (resourceId: string, panelId: string) => void
-}) {
-  if (!panel && !resource) {
-    return (
-      <div className="inspector-empty">
-        <div className="inspector-icon">◇</div>
-        <strong>Nothing selected</strong>
-        <span>Select an element on the canvas to edit its properties.</span>
-      </div>
-    )
-  }
-
-  if (resource) {
-    return (
-      <div>
-        <div className="inspector-field">
-          <label>Panel</label>
-          <select value={findResourcePanel(panels, resource.id)} onChange={event => onPlaceResource(resource.id, event.target.value)}>
-            <option value="">Unassigned</option>
-            {panels.map(panel => <option key={panel.id} value={panel.id}>{panel.title}</option>)}
-          </select>
-        </div>
-        <div className="inspector-field">
-          <label>Name</label>
-          <input
-            value={resource.name}
-            onChange={(event) =>
-              onUpdateResource(resource.id, {
-                name: event.target.value,
-              })
-            }
-          />
-        </div>
-
-        <div className="inspector-field">
-          <label>Initial value</label>
-          <input
-            type="number"
-            value={resource.initialValue}
-            onChange={(event) =>
-              onUpdateResource(resource.id, {
-                initialValue: Number(event.target.value),
-              })
-            }
-          />
-        </div>
-
-        <div className="inspector-field">
-          <label>Maximum value</label>
-          <input
-            type="number"
-            placeholder="No maximum"
-            value={resource.maxValue ?? ''}
-            onChange={(event) =>
-              onUpdateResource(resource.id, {
-                maxValue: event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          />
-        </div>
-
-        <div className="inspector-field">
-          <label>Unit</label>
-          <input
-            value={resource.unit}
-            placeholder="%, MW, MB..."
-            onChange={(event) =>
-              onUpdateResource(resource.id, {
-                unit: event.target.value,
-              })
-            }
-          />
-        </div>
-
-        <div className="inspector-field">
-          <label>Display</label>
-          <select
-            value={resource.displayMode}
-            onChange={(event) =>
-              onUpdateResource(resource.id, {
-                displayMode: event.target.value as Resource['displayMode'],
-              })
-            }
-          >
-            <option value="value">Value</option>
-            <option value="value-max">Value / Max</option>
-            <option value="bar">Bar</option>
-          </select>
-        </div>
-
-        <label className="checkbox-field">
-          <input
-            type="checkbox"
-            checked={resource.initiallyVisible}
-            onChange={(event) =>
-              onUpdateResource(resource.id, {
-                initiallyVisible: event.target.checked,
-              })
-            }
-          />
-          Visible at game start
-        </label>
-      </div>
-    )
-  }
-
-  if (!panel) {
-    return null
-  }
-
-  return (
-    <div>
-      <div className="inspector-field">
-        <label>Title</label>
-        <input
-          value={panel.title}
-          onChange={(event) =>
-            onUpdatePanel(panel.id, {
-              title: event.target.value,
-            })
-          }
-        />
-      </div>
-
-      <div className="inspector-field">
-        <label>Slot</label>
-        <select
-          value={panel.slot}
-          onChange={(event) =>
-            onUpdatePanel(panel.id, {
-              slot: event.target.value as PanelSlot,
-            })
-          }
-        >
-          {PANEL_SLOTS.map((slot) => (
-            <option key={slot.value} value={slot.value}>
-              {slot.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <ColorField
-        label="Background"
-        value={panel.backgroundColor}
-        onChange={(value) =>
-          onUpdatePanel(panel.id, {
-            backgroundColor: value,
-          })
-        }
-      />
-
-      <ColorField
-        label="Text"
-        value={panel.textColor}
-        onChange={(value) =>
-          onUpdatePanel(panel.id, {
-            textColor: value,
-          })
-        }
-      />
-
-      <ColorField
-        label="Border"
-        value={panel.borderColor}
-        onChange={(value) =>
-          onUpdatePanel(panel.id, {
-            borderColor: value,
-          })
-        }
-      />
     </div>
   )
 }
