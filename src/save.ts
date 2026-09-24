@@ -4,7 +4,7 @@ const PROJECT_INDEX_KEY = 'ige-project-index-v1'
 const PROJECT_STORAGE_PREFIX = 'ige-project-v1:'
 const LEGACY_GAME_STORAGE_KEY = 'ige-game-project-v1'
 
-export const CURRENT_PROJECT_VERSION = 3
+export const CURRENT_PROJECT_VERSION = 4
 
 function normalizeProject(raw: unknown): GameProject | null {
   if (!raw || typeof raw !== 'object') return null
@@ -33,7 +33,9 @@ function normalizeProject(raw: unknown): GameProject | null {
     name: project.name,
     gameSettings: project.gameSettings,
     panels: project.panels.map(panel => ({ ...panel, items: Array.isArray(panel.items) ? panel.items : [] })),
-    resources: Array.isArray(project.resources) ? project.resources : [],
+    resources: Array.isArray(project.resources)
+      ? project.resources.map(resource => ({ ...resource, icon: typeof resource.icon === 'string' ? resource.icon : '◇' }))
+      : [],
   }
 }
 
