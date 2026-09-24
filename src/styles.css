@@ -337,3 +337,16 @@ button { color: inherit; }
 .game-panel--horizontal .panel-content { flex: 1; min-width: 0; flex-wrap: nowrap; align-items: center; overflow-x: auto; }
 .game-panel--horizontal .panel-item { flex: 0 0 auto; }
 .game-panel--horizontal .resource-view { padding: 4px 7px; gap: 2px; }
+
+
+/* Resource icons and multi-panel references */
+.resource-view { grid-template-columns: 23px minmax(0, 1fr); align-items: center; min-width: 112px; }
+.resource-view-icon { font-size: 19px; line-height: 1; text-align: center; }
+.resource-view-info { display: grid; gap: 3px; min-width: 0; }
+.resource-view-track { display: block; width: 100%; min-width: 90px; height: 7px; border: 1px solid #486248; }
+.resource-view-fill { display: block; min-width: 0; transition: width .15s ease; }
+.resource-view-hint { font-size: 10px; color: #d5b37f; }
+.resource-icon-choices { display: flex; flex-wrap: wrap; gap: 4px; }
+.resource-icon-choices button { width: 30px; height: 30px; background: #152117; border: 1px solid #3c543f; border-radius: 4px; cursor: pointer; }
+.resource-icon-choices button.chosen { border-color: #b0deb6; background: #29452f; }
+.resource-panel-checkboxes { display: grid; gap: 2px; max-height: 160px; overflow: auto; padding: 4px 8px; border: 1px solid #344734; }
