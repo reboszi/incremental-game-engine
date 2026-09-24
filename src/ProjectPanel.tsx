@@ -1,6 +1,6 @@
 import type { DragEvent } from 'react'
 import type { Panel, Resource } from './types'
-import { RESOURCE_DRAG_TYPE } from './panelItems'
+import { RESOURCE_DRAG_TYPE, readResourceDrag } from './panelItems'
 
 export function ProjectPanel({
   projectName,
@@ -15,10 +15,10 @@ export function ProjectPanel({
   resources: Resource[]
   onSelectPanel: (id: string) => void
   onSelectResource: (id: string) => void
-  onPlaceResource: (resourceId: string, panelId: string, beforeItemId?: string) => void
+  onPlaceResource: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
 }) {
-  const startDrag = (event: DragEvent<HTMLElement>, resourceId: string) => {
-    event.dataTransfer.setData(RESOURCE_DRAG_TYPE, resourceId)
+  const startDrag = (event: DragEvent<HTMLElement>, resourceId: string, itemId?: string) => {
+    event.dataTransfer.setData(RESOURCE_DRAG_TYPE, JSON.stringify({ resourceId, itemId }))
     event.dataTransfer.effectAllowed = 'move'
   }
 
@@ -29,17 +29,17 @@ export function ProjectPanel({
   }
 
   const drop = (event: DragEvent<HTMLElement>, panelId: string, beforeItemId?: string) => {
-    const resourceId = event.dataTransfer.getData(RESOURCE_DRAG_TYPE)
-    if (!resourceId || !resources.some(resource => resource.id === resourceId)) return
+    const drag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
+    if (!drag || !resources.some(resource => resource.id === drag.resourceId)) return
     event.preventDefault()
     event.stopPropagation()
-    onPlaceResource(resourceId, panelId, beforeItemId)
+    onPlaceResource(drag.resourceId, panelId, beforeItemId, drag.itemId)
   }
 
   return (
     <div className="project-tree">
       <div className="tree-row tree-root">▾ {projectName}</div>
-      <div className="tree-row tree-child muted">Panels (drop resources here)</div>
+      <div className="tree-row tree-child muted">Panels (drag references here)</div>
       {panels.map(panel => (
         <div key={panel.id}>
           <button
@@ -61,12 +61,12 @@ export function ProjectPanel({
                 type="button"
                 draggable
                 className="tree-row tree-attached tree-button"
-                onDragStart={event => startDrag(event, resource.id)}
+                onDragStart={event => startDrag(event, resource.id, item.id)}
                 onDragOver={allowDrop}
                 onDrop={event => drop(event, panel.id, item.id)}
                 onClick={() => onSelectResource(resource.id)}
               >
-                ↳ {resource.name}
+                ↳ {resource.icon || '◇'} {resource.name}
               </button>
             )
           })}
@@ -82,7 +82,7 @@ export function ProjectPanel({
           onClick={() => onSelectResource(resource.id)}
           onDragStart={event => startDrag(event, resource.id)}
         >
-          ⠿ {resource.name}
+          {resource.icon || '◇'} {resource.name}
         </button>
       ))}
       <div className="tree-row tree-child muted">Actions</div>
