@@ -33,6 +33,10 @@ export function placeResource(
 ): Panel[] {
   if (!panels.some(panel => panel.id === targetPanelId)) return panels
 
+  // One reference per resource in a panel; moving within that panel still reorders it.
+  const target = panels.find(panel => panel.id === targetPanelId)!
+  if (target.items.some(item => item.resourceId === resourceId && item.id !== itemId)) return panels
+
   const existing = itemId
     ? panels.flatMap(panel => panel.items).find(item => item.id === itemId && item.resourceId === resourceId)
     : undefined
