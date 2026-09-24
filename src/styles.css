@@ -330,3 +330,10 @@ button { color: inherit; }
 .tree-attached { padding-left: 58px; opacity: .85; }
 .panel-drop-target { border-left: 2px solid transparent; }
 .panel-drop-target:hover { border-left-color: #8bc796; }
+
+/* Wide strips such as SPARK's top resource bar keep their items in a single row. */
+.game-panel--horizontal { display: flex; align-items: center; gap: 12px; padding: 4px 10px; }
+.game-panel--horizontal .game-panel-title { flex: 0 0 auto; margin: 0; white-space: nowrap; }
+.game-panel--horizontal .panel-content { flex: 1; min-width: 0; flex-wrap: nowrap; align-items: center; overflow-x: auto; }
+.game-panel--horizontal .panel-item { flex: 0 0 auto; }
+.game-panel--horizontal .resource-view { padding: 4px 7px; gap: 2px; }
