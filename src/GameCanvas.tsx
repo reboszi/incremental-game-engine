@@ -1,7 +1,7 @@
 import type { DragEvent } from 'react'
 import type { Panel, Resource } from './types'
 import { PANEL_SLOTS } from './layout'
-import { RESOURCE_DRAG_TYPE } from './panelItems'
+import { RESOURCE_DRAG_TYPE, readResourceDrag } from './panelItems'
 import { ResourceView } from './ResourceView'
 
 export function GameCanvas({
@@ -18,7 +18,7 @@ export function GameCanvas({
   selectedPanelId?: string | null
   onSelectPanel?: (id: string | null) => void
   onSelectResource?: (id: string) => void
-  onPlaceResource?: (resourceId: string, panelId: string, beforeItemId?: string) => void
+  onPlaceResource?: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
   editable: boolean
 }) {
   const allowDrop = (event: DragEvent<HTMLElement>) => {
@@ -29,11 +29,11 @@ export function GameCanvas({
 
   const placeDropped = (event: DragEvent<HTMLElement>, panelId: string, beforeItemId?: string) => {
     if (!editable) return
-    const resourceId = event.dataTransfer.getData(RESOURCE_DRAG_TYPE)
-    if (!resourceId || !resources.some(resource => resource.id === resourceId)) return
+    const drag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
+    if (!drag || !resources.some(resource => resource.id === drag.resourceId)) return
     event.preventDefault()
     event.stopPropagation()
-    onPlaceResource?.(resourceId, panelId, beforeItemId)
+    onPlaceResource?.(drag.resourceId, panelId, beforeItemId, drag.itemId)
   }
 
   return (
@@ -79,7 +79,7 @@ export function GameCanvas({
                     onDragStart={event => {
                       if (!editable) return
                       event.stopPropagation()
-                      event.dataTransfer.setData(RESOURCE_DRAG_TYPE, resource.id)
+                      event.dataTransfer.setData(RESOURCE_DRAG_TYPE, JSON.stringify({ resourceId: resource.id, itemId: item.id }))
                       event.dataTransfer.effectAllowed = 'move'
                     }}
                     onDragOver={allowDrop}
