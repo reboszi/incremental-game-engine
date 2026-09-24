@@ -6,6 +6,7 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 1,
     columnSpan: 5,
+    direction: 'horizontal',
   },
   {
     value: 'top-inner',
@@ -14,6 +15,7 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 2,
     columnSpan: 3,
+    direction: 'horizontal',
   },
   {
     value: 'left-outer',
@@ -22,6 +24,7 @@ export const PANEL_SLOTS = [
     rowSpan: 4,
     columnStart: 1,
     columnSpan: 1,
+    direction: 'vertical',
   },
   {
     value: 'left-inner',
@@ -30,6 +33,7 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 2,
     columnSpan: 1,
+    direction: 'vertical',
   },
   {
     value: 'center',
@@ -38,6 +42,7 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 3,
     columnSpan: 1,
+    direction: 'vertical',
   },
   {
     value: 'right-inner',
@@ -46,6 +51,7 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 4,
     columnSpan: 1,
+    direction: 'vertical',
   },
   {
     value: 'right-outer',
@@ -54,6 +60,7 @@ export const PANEL_SLOTS = [
     rowSpan: 4,
     columnStart: 5,
     columnSpan: 1,
+    direction: 'vertical',
   },
   {
     value: 'bottom-inner',
@@ -62,6 +69,7 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 2,
     columnSpan: 3,
+    direction: 'horizontal',
   },
   {
     value: 'bottom',
@@ -70,5 +78,6 @@ export const PANEL_SLOTS = [
     rowSpan: 1,
     columnStart: 2,
     columnSpan: 3,
+    direction: 'horizontal',
   },
 ] as const
