@@ -1,6 +1,6 @@
 import type { Panel, PanelSlot, Resource } from './types'
 import { PANEL_SLOTS } from './layout'
-import { findResourcePanel } from './panelItems'
+import { resourcePanelIds } from './panelItems'
 import { ColorField } from './ColorField'
 
 export function Inspector({
@@ -9,14 +9,14 @@ export function Inspector({
   onUpdatePanel,
   onUpdateResource,
   panels,
-  onPlaceResource,
+  onToggleResourcePanel,
 }: {
   panel: Panel | null
   resource: Resource | null
   panels: Panel[]
   onUpdatePanel: (id: string, changes: Partial<Panel>) => void
   onUpdateResource: (id: string, changes: Partial<Resource>) => void
-  onPlaceResource: (resourceId: string, panelId: string) => void
+  onToggleResourcePanel: (resourceId: string, panelId: string, enabled: boolean) => void
 }) {
   if (!panel && !resource) {
     return (
@@ -32,11 +32,36 @@ export function Inspector({
     return (
       <div>
         <div className="inspector-field">
-          <label>Panel</label>
-          <select value={findResourcePanel(panels, resource.id)} onChange={event => onPlaceResource(resource.id, event.target.value)}>
-            <option value="">Unassigned</option>
-            {panels.map(panel => <option key={panel.id} value={panel.id}>{panel.title}</option>)}
-          </select>
+          <label>Panels (references)</label>
+          <div className="resource-panel-checkboxes">
+            {panels.length === 0 && <span className="muted">Create a panel first.</span>}
+            {panels.map(panel => (
+              <label className="checkbox-field" key={panel.id}>
+                <input
+                  type="checkbox"
+                  checked={resourcePanelIds(panels, resource.id).includes(panel.id)}
+                  onChange={event => onToggleResourcePanel(resource.id, panel.id, event.target.checked)}
+                />
+                {panel.title}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="inspector-field">
+          <label>Icon</label>
+          <input
+            type="text"
+            value={resource.icon}
+            maxLength={8}
+            placeholder="⚡"
+            onChange={event => onUpdateResource(resource.id, { icon: event.target.value })}
+          />
+          <div className="resource-icon-choices">
+            {['⚡','🧠','💾','⚙️','🔋','🧪','🪨','🪵','💧','🔥','💎','🛠️','🧭','⭐','◇'].map(icon => (
+              <button type="button" key={icon} className={resource.icon === icon ? 'chosen' : ''}
+                title={icon} onClick={() => onUpdateResource(resource.id, { icon })}>{icon}</button>
+            ))}
+          </div>
         </div>
         <div className="inspector-field">
           <label>Name</label>
@@ -97,6 +122,7 @@ export function Inspector({
             onChange={(event) =>
               onUpdateResource(resource.id, {
                 displayMode: event.target.value as Resource['displayMode'],
+                ...(event.target.value === 'bar' && resource.maxValue === null ? { maxValue: 100 } : {}),
               })
             }
           >
