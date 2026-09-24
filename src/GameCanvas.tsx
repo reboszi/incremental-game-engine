@@ -7,6 +7,7 @@ import { ResourceView } from './ResourceView'
 export function GameCanvas({
   panels,
   resources = [],
+  resourceValues,
   selectedPanelId = null,
   onSelectPanel,
   onSelectResource,
@@ -15,6 +16,7 @@ export function GameCanvas({
 }: {
   panels: Panel[]
   resources?: Resource[]
+  resourceValues?: Record<string, number>
   selectedPanelId?: string | null
   onSelectPanel?: (id: string | null) => void
   onSelectResource?: (id: string) => void
@@ -90,7 +92,7 @@ export function GameCanvas({
                       onSelectResource?.(resource.id)
                     }}
                   >
-                    <ResourceView resource={resource} />
+                    <ResourceView resource={resource} value={resourceValues?.[resource.id] ?? resource.initialValue} />
                   </div>
                 )
               })}
