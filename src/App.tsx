@@ -325,11 +325,12 @@ function Editor() {
     }
 
     setResources((current) => [...current, newResource])
+    if (selectedPanelId) setPanels(current=>placeResource(current,newResource.id,selectedPanelId))
     setSelectedPanelId(null)
     setSelectedResourceId(newResource.id)
     setSelectedCategoryId(null)
     setSelectedActionId(null)
-  }, [])
+  }, [selectedPanelId])
 
   const createCategory = useCallback(() => {
     const category: ActionCategory = { id: crypto.randomUUID(), name: 'New Category' }
@@ -369,12 +370,27 @@ function Editor() {
         panel.items.filter(item=>item.type!=='action-category' || item.categoryId!==categoryId)}))
   }, [])
 
+  // Categories own the layout. Dropping a task onto a panel places its category,
+  // never an orphan button next to the category's other tasks.
   const placeActionItem = useCallback((kind:'action'|'action-category',id:string,panelId:string,beforeItemId?:string,itemId?:string)=>{
-    setPanels(current=>placePanelReference(current,kind,id,panelId,beforeItemId,itemId))
-  },[])
+    if (kind === 'action') {
+      const action = actions.find(candidate=>candidate.id===id)
+      if (!action) return
+      setPanels(current=>{
+        const withoutOld = itemId ? current.map(panel=>({
+          ...panel,items:panel.items.filter(item=>item.id!==itemId),
+        })) : current
+        return placePanelReference(withoutOld,'action-category',action.categoryId,panelId,beforeItemId)
+      })
+    } else {
+      setPanels(current=>placePanelReference(current,kind,id,panelId,beforeItemId,itemId))
+    }
+  },[actions])
   const toggleActionPanel = useCallback((actionId:string,panelId:string,checked:boolean)=>{
-    setPanels(current=>setPanelReference(current,'action',actionId,panelId,checked))
-  },[])
+    const action = actions.find(candidate=>candidate.id===actionId)
+    if (!action) return
+    setPanels(current=>setPanelReference(current,'action-category',action.categoryId,panelId,checked))
+  },[actions])
 
   const selectCategory = useCallback((id: string) => {
     setSelectedCategoryId(id); setSelectedActionId(null); setSelectedPanelId(null); setSelectedResourceId(null)
