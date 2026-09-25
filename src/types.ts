@@ -33,6 +33,7 @@ export type Panel = {
 }
 
 export type ResourceDisplayMode = 'value' | 'value-max' | 'bar'
+export type HiddenLayout = 'collapse' | 'reserve'
 
 export type Resource = {
   id: string
@@ -43,6 +44,7 @@ export type Resource = {
   unit: string
   displayMode: ResourceDisplayMode
   initiallyVisible: boolean
+  hiddenLayout: HiddenLayout
 }
 
 export type GameProject = {
