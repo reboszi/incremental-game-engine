@@ -426,3 +426,23 @@ button { color: inherit; }
   white-space: nowrap;
   border-color: #728e73 !important;
 }
+
+
+/* Action categories and configurable horizontal button groups. */
+.panel-category-item { flex: 1 1 100%; width: 100%; min-width: 150px; cursor: default; }
+.game-panel--horizontal .panel-category-item { flex: 0 1 auto; width: auto; }
+.action-category { display: grid; gap: 8px; min-width: 0; }
+.action-category-title { font-size: 12px; font-weight: 700; opacity: .85; }
+.action-button-row { display: flex; flex-flow: row wrap; align-items: start; gap: 6px; }
+.action-button { display: grid; gap: 3px; min-width: 95px; max-width: 100%; padding: 8px 11px;
+  border: 1px solid #55765d; border-radius: 5px; background: #1c3020; text-align: left; cursor: pointer; }
+.action-button small { font-size: 10px; color: #9cb99e; }
+.action-button:disabled { cursor: not-allowed; opacity: .4; }
+.action-button:not(:disabled):hover { background: #30533a; }
+.action-editor-line { display: flex; gap: 5px; align-items: center; margin: 6px 0; }
+.action-editor-line select { min-width: 0; flex: 1; }
+.action-editor-line input { width: 64px; flex: 0 0 64px; }
+.action-editor-line button, .action-effect-editor button { min-width: 26px; height: 32px; cursor: pointer; }
+.action-effect-editor { border: 1px solid #344734; border-radius: 4px; padding: 5px; margin-bottom: 8px; display: grid; gap: 4px; }
+.action-effect-editor > select, .action-effect-editor > input { width: 100%; min-width: 0; height: 32px; }
+.tool-button:disabled { opacity: .35; cursor: not-allowed; }
