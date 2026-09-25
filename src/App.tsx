@@ -335,12 +335,15 @@ function Editor() {
   const createCategory = useCallback(() => {
     const category: ActionCategory = { id: crypto.randomUUID(), name: 'New Category' }
     setCategories(current => [...current, category])
+    if (selectedPanelId) {
+      setPanels(current=>placePanelReference(current,'action-category',category.id,selectedPanelId))
+    }
     setSelectedCategoryId(category.id); setSelectedActionId(null)
     setSelectedPanelId(null); setSelectedResourceId(null)
-  }, [])
+  }, [selectedPanelId])
 
   const createAction = useCallback(() => {
-    let categoryId = categories[0]?.id
+    let categoryId = selectedCategoryId ?? categories[0]?.id
     if (!categoryId) {
       const category: ActionCategory = { id: crypto.randomUUID(), name: 'Tasks' }
       categoryId = category.id
@@ -354,7 +357,7 @@ function Editor() {
     setActions(current => [...current, action])
     setSelectedActionId(action.id); setSelectedCategoryId(null)
     setSelectedPanelId(null); setSelectedResourceId(null)
-  }, [categories])
+  }, [categories,selectedCategoryId])
 
   const updateCategory = useCallback((id: string, name: string) => {
     setCategories(current => current.map(category => category.id === id ? {...category,name} : category))
@@ -362,9 +365,17 @@ function Editor() {
   const updateAction = useCallback((id: string, changes: Partial<GameAction>) => {
     setActions(current => current.map(action => action.id === id ? {...action,...changes} : action))
   }, [])
-  const moveActionToCategory = useCallback((actionId:string,categoryId:string)=>{
+  const moveActionToCategory = useCallback((actionId:string,categoryId:string,beforeActionId?:string)=>{
     if (!categories.some(category=>category.id===categoryId)) return
-    setActions(current=>current.map(action=>action.id===actionId ? {...action,categoryId}:action))
+    setActions(current=>{
+      const moving=current.find(action=>action.id===actionId)
+      if (!moving) return current
+      const remaining=current.filter(action=>action.id!==actionId)
+      const before=beforeActionId ? remaining.findIndex(action=>action.id===beforeActionId) : -1
+      const item={...moving,categoryId}
+      if (before<0) return [...remaining,item]
+      return [...remaining.slice(0,before),item,...remaining.slice(before)]
+    })
   },[categories])
   const toggleCategoryPanel = useCallback((categoryId: string, panelId: string, checked: boolean) => {
     setPanels(current => current.map(panel => panel.id !== panelId ? panel :
