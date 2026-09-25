@@ -301,6 +301,14 @@ function Editor() {
     }
 
     setPanels((current) => [...current, newPanel])
+    setSelectedPanelId(newPanel.id)
+    setSelectedResourceId(null)
+    setSelectedCategoryId(null)
+    setSelectedActionId(null)
+    setPreviewOpen(false)
+    setSettingsOpen(false)
+    setProjectsOpen(false)
+    setStack(current => [...current.filter(id => id !== 'inspector'), 'inspector'])
   }, [gameSettings])
 
   const createResource = useCallback(() => {
