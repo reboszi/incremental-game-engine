@@ -96,7 +96,6 @@ export function ProjectPanel({
                 type="button"
                 draggable
                 onDragEnd={endPanelDrag}
-          onDragEnd={endPanelDrag}
                 className="tree-row tree-attached tree-button"
                 onDragStart={event => startDrag(event, resource.id, item.id)}
                 onDragOver={allowDrop}
