@@ -6,6 +6,12 @@ export function canStartAction(action: GameAction, state: GameState, project: Ga
   if (!(state.actionVisibility[action.id] ?? action.initiallyVisible)) return false
   if (!action.repeatable && state.completedActions[action.id]) return false
   if (state.runningTasks.some(task => task.actionId === action.id)) return false
+  // Invalid effect targets are configuration errors, not silently successful tasks.
+  if (!action.effects.every(effect => {
+    if ('resourceId' in effect) return project.resources.some(resource=>resource.id===effect.resourceId) &&
+      (!('amount' in effect) || Number.isFinite(effect.amount))
+    return project.actions.some(candidate=>candidate.id===effect.actionId && candidate.id!==action.id)
+  })) return false
   return action.requirements.every(requirement => {
     const resource = project.resources.find(resource => resource.id === requirement.resourceId)
     return !!resource && (state.resourceValues[resource.id] ?? resource.initialValue) >= requirement.minimum
@@ -21,12 +27,13 @@ export function applyActionEffects(action: GameAction, state: GameState, project
     completedActions: { ...state.completedActions, [action.id]: true },
   }
   for (const effect of action.effects) {
-    if (effect.type === 'add-resource' || effect.type === 'set-resource') {
+    if (effect.type === 'add-resource' || effect.type === 'set-resource' || effect.type === 'grant-resource') {
       const resource = project.resources.find(resource => resource.id === effect.resourceId)
       if (!resource) continue
       const old = next.resourceValues[resource.id] ?? resource.initialValue
       next.resourceValues[resource.id] = clampResourceValue(resource,
-        effect.type === 'add-resource' ? old + effect.amount : effect.amount)
+        effect.type === 'set-resource' ? effect.amount : old + effect.amount)
+      if (effect.type === 'grant-resource') next.resourceVisibility[resource.id] = true
     } else if (effect.type === 'reveal-resource' || effect.type === 'hide-resource') {
       if (project.resources.some(resource => resource.id === effect.resourceId)) {
         next.resourceVisibility[effect.resourceId] = effect.type === 'reveal-resource'
