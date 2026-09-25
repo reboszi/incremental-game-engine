@@ -23,6 +23,7 @@ export function GameCanvas({
   onSelectResource,
   onPlaceResource,
   onPlacePanelItem,
+  onMoveActionToCategory,
   editable,
 }: {
   panels: Panel[]
@@ -40,6 +41,7 @@ export function GameCanvas({
   onSelectResource?: (id: string) => void
   onPlaceResource?: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
   onPlacePanelItem?: (kind:'action'|'action-category',id:string,panelId:string,beforeItemId?:string,itemId?:string)=>void
+  onMoveActionToCategory?: (actionId:string,categoryId:string,beforeActionId?:string)=>void
   editable: boolean
 }) {
   const [dragOverPanelId, setDragOverPanelId] = useState<string | null>(null)
@@ -132,7 +134,16 @@ export function GameCanvas({
                       event.stopPropagation()
                       beginPanelDrag(event,{kind:'action-category',id:category.id,itemId:item.id})
                     }}
-                    onDragOver={event=>allowDrop(event,panel.id)} onDrop={event=>placeDropped(event,panel.id,item.id)}
+                    onDragOver={event=>allowDrop(event,panel.id)}
+                    onDrop={event=>{
+                      const drag=getPanelDrag(event)
+                      if (editable && drag?.kind==='action' && actions.some(action=>action.id===drag.id)) {
+                        event.preventDefault();event.stopPropagation()
+                        onMoveActionToCategory?.(drag.id,category.id)
+                        setDragOverPanelId(null)
+                        endPanelDrag()
+                      } else placeDropped(event,panel.id,item.id)
+                    }}
                     onClick={event=>event.stopPropagation()}>
                     <ActionCategoryView category={category}
                       actions={actions.filter(action=>action.categoryId===category.id)}
