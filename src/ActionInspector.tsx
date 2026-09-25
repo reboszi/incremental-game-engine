@@ -82,14 +82,15 @@ export function ActionInspector({category, action, categories, actions, panels, 
       <div className="action-editor-line">
         <select value={effect.type} aria-label="Effect type" onChange={event => {
           const type=event.target.value as ActionEffect['type']
-          const replacement: ActionEffect = type==='add-resource'||type==='set-resource'
+          const replacement: ActionEffect = type==='add-resource'||type==='set-resource'||type==='grant-resource'
             ? {id:effect.id,type,resourceId:resources[0]?.id??'',amount:1}
             : type==='reveal-action'||type==='hide-action'
               ? {id:effect.id,type,actionId:actions.find(item=>item.id!==action.id)?.id??''}
               : {id:effect.id,type,resourceId:resources[0]?.id??''}
           updateAction(action.id,{effects:action.effects.map(item=>item.id===effect.id?replacement:item)})
         }}>
-          <option value="add-resource">Add resource value</option>
+          <option value="add-resource">Increase / decrease value</option>
+          <option value="grant-resource">Discover resource + add value</option>
           <option value="set-resource">Set resource value</option>
           <option value="reveal-resource">Reveal resource</option>
           <option value="hide-resource">Hide resource</option>
@@ -104,8 +105,16 @@ export function ActionInspector({category, action, categories, actions, panels, 
       {'actionId' in effect && <select value={effect.actionId} onChange={event=>patchEffect(effect.id,{actionId:event.target.value})}>
         <option value="">Choose action</option>{actions.filter(item=>item.id!==action.id).map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
       </select>}
-      {'amount' in effect && <input type="number" aria-label="Amount" value={effect.amount} onChange={event=>patchEffect(effect.id,{amount:Number(event.target.value)||0})}/>}
+      {'amount' in effect && <input type="number" aria-label="Amount" value={effect.amount} onChange={event=>patchEffect(effect.id,{amount:Number(event.target.value)||0})}/> }
+      {'resourceId' in effect && !effect.resourceId && <small className="action-warning">Choose a resource or this effect cannot run.</small>}
+      {'amount' in effect && 'resourceId' in effect && effect.type !== 'set-resource' &&
+        resources.some(resource=>resource.id===effect.resourceId &&
+          resource.maxValue !== null && resource.initialValue >= resource.maxValue && effect.amount > 0) &&
+        <small className="action-warning">This resource starts at its maximum. Increase its maximum or lower its current value before adding more.</small>}
+      {effect.type === 'add-resource' && <small className="muted">Changes the amount, but does not reveal a hidden resource. Use Discover resource + add value to do both.</small>}
     </div>)}
-    <button className="tool-button" type="button" onClick={addEffect}>+ Effect</button>
+    <button className="tool-button" type="button" disabled={!resources.length && actions.length < 2}
+      onClick={addEffect}>+ Effect</button>
+    {!resources.length && <small className="action-warning">Create a resource before adding a resource effect.</small>}
   </div>
 }
