@@ -4,7 +4,7 @@ import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame }
 import { GameCanvas } from './GameCanvas'
 import { Player } from './Player'
 import { ProjectPanel } from './ProjectPanel'
-import { placeResource, setResourcePanel, placePanelReference, setPanelReference } from './panelItems'
+import { placeResource, setResourcePanel, placePanelReference, setPanelReference, placeTaskCategory } from './panelItems'
 import { ColorField } from './ColorField'
 import { Inspector } from './Inspector'
 import { ActionInspector } from './ActionInspector'
@@ -391,12 +391,7 @@ function Editor() {
     if (kind === 'action') {
       const action = actions.find(candidate=>candidate.id===id)
       if (!action) return
-      setPanels(current=>{
-        const withoutOld = itemId ? current.map(panel=>({
-          ...panel,items:panel.items.filter(item=>item.id!==itemId),
-        })) : current
-        return placePanelReference(withoutOld,'action-category',action.categoryId,panelId,beforeItemId)
-      })
+      setPanels(current=>placeTaskCategory(current,action,panelId,beforeItemId,itemId))
     } else {
       setPanels(current=>placePanelReference(current,kind,id,panelId,beforeItemId,itemId))
     }
