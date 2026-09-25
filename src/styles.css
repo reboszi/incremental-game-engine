@@ -517,3 +517,48 @@ button { color: inherit; }
 }
 .project-tree [draggable="true"] { cursor: grab; }
 .project-tree [draggable="true"]:active { cursor: grabbing; }
+
+
+/* Action categories are real subpanels, with a header and their own button grid. */
+.panel-category-item,
+.panel-content--vertical > .panel-category-item {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+.game-panel--horizontal .panel-category-item {
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: min(650px, 85vw);
+}
+.action-category {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(132,158,121,.65);
+  border-radius: 5px;
+  background: linear-gradient(155deg, rgba(39,57,41,.88),rgba(16,29,22,.85));
+  box-shadow: inset 0 1px 0 rgba(215,236,200,.09), 0 2px 8px rgba(0,0,0,.25);
+}
+.action-category-title {
+  margin: -2px 0 0;
+  padding: 0 0 8px;
+  border-bottom: 1px solid rgba(128,161,122,.33);
+  color: #dbe7d3;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .025em;
+}
+.action-button-row {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.tree-subpanel { border-left: 2px solid #435c48; margin-left: 40px; }
+.tree-subpanel > .tree-attached { padding-left: 17px; }
+.tree-category-action { padding-left: 35px; color: #a7c49d; }
+.action-warning { display: block; margin: 5px 0; color: #e3ad7a; font-size: 11px; line-height: 1.35; }
