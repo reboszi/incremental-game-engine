@@ -26,6 +26,11 @@ export type PanelItem =
       type: 'action-category'
       categoryId: string
     }
+  | {
+      id: string
+      type: 'action'
+      actionId: string
+    }
 
 export type Panel = {
   id: string
