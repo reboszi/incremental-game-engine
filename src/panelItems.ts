@@ -125,3 +125,45 @@ export function setPanelReference(
       : item.type !== 'action-category' || item.categoryId !== id),
   } : panel)
 }
+
+/** HTML drag data can be hidden while dragging across portals/windows in some browsers.
+ * This in-memory fallback only lives for the current gesture. */
+export type PanelDragPayload =
+  | { kind: 'resource'; id: string; itemId?: string }
+  | { kind: 'action' | 'action-category'; id: string; itemId?: string }
+let activePanelDrag: PanelDragPayload | null = null
+
+export function beginPanelDrag(event: { dataTransfer: DataTransfer }, payload: PanelDragPayload) {
+  activePanelDrag = payload
+  const dataType = payload.kind === 'resource' ? RESOURCE_DRAG_TYPE :
+    payload.kind === 'action' ? ACTION_DRAG_TYPE : CATEGORY_DRAG_TYPE
+  event.dataTransfer.setData(dataType, JSON.stringify(payload.kind === 'resource'
+    ? {resourceId: payload.id, itemId: payload.itemId}
+    : {id: payload.id, itemId: payload.itemId}))
+  event.dataTransfer.setData('text/plain', JSON.stringify(payload))
+  event.dataTransfer.effectAllowed = payload.itemId ? 'move' : 'copyMove'
+}
+
+export function endPanelDrag() { activePanelDrag = null }
+
+export function getPanelDrag(event: { dataTransfer: DataTransfer }): PanelDragPayload | null {
+  const resource = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
+  if (resource) return {kind:'resource',id:resource.resourceId,itemId:resource.itemId}
+  const action = readActionDrag(event.dataTransfer.getData(ACTION_DRAG_TYPE))
+  if (action) return {kind:'action',id:action.id,itemId:action.itemId}
+  const category = readActionDrag(event.dataTransfer.getData(CATEGORY_DRAG_TYPE))
+  if (category) return {kind:'action-category',id:category.id,itemId:category.itemId}
+  try {
+    const parsed: unknown = JSON.parse(event.dataTransfer.getData('text/plain'))
+    if (parsed && typeof parsed === 'object') {
+      const candidate = parsed as Partial<PanelDragPayload>
+      if ((candidate.kind === 'resource' || candidate.kind === 'action' || candidate.kind === 'action-category') &&
+        typeof candidate.id === 'string') return candidate as PanelDragPayload
+    }
+  } catch { /* use the active gesture */ }
+  return activePanelDrag
+}
+export function isPanelDrag(event: { dataTransfer: DataTransfer }) {
+  return !!activePanelDrag || [RESOURCE_DRAG_TYPE,ACTION_DRAG_TYPE,CATEGORY_DRAG_TYPE].some(type=>
+    Array.from(event.dataTransfer.types).includes(type))
+}
