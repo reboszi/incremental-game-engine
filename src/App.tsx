@@ -752,6 +752,7 @@ function Editor() {
         onSelectAction={selectAction}
         onPlaceResource={assignResource}
         onPlacePanelItem={placeActionItem}
+        onMoveActionToCategory={moveActionToCategory}
         onSelectResource={(id) => { setSelectedResourceId(id); setSelectedPanelId(null); setSelectedCategoryId(null); setSelectedActionId(null) }}
         selectedPanelId={selectedPanelId}
         onSelectPanel={(id) => {
