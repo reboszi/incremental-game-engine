@@ -4,7 +4,7 @@ import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame }
 import { GameCanvas } from './GameCanvas'
 import { Player } from './Player'
 import { ProjectPanel } from './ProjectPanel'
-import { placeResource, setResourcePanel } from './panelItems'
+import { placeResource, setResourcePanel, placePanelReference, setPanelReference } from './panelItems'
 import { ColorField } from './ColorField'
 import { Inspector } from './Inspector'
 import { ActionInspector } from './ActionInspector'
@@ -361,6 +361,13 @@ function Editor() {
         panel.items.filter(item=>item.type!=='action-category' || item.categoryId!==categoryId)}))
   }, [])
 
+  const placeActionItem = useCallback((kind:'action'|'action-category',id:string,panelId:string,beforeItemId?:string,itemId?:string)=>{
+    setPanels(current=>placePanelReference(current,kind,id,panelId,beforeItemId,itemId))
+  },[])
+  const toggleActionPanel = useCallback((actionId:string,panelId:string,checked:boolean)=>{
+    setPanels(current=>setPanelReference(current,'action',actionId,panelId,checked))
+  },[])
+
   const selectCategory = useCallback((id: string) => {
     setSelectedCategoryId(id); setSelectedActionId(null); setSelectedPanelId(null); setSelectedResourceId(null)
   }, [])
@@ -590,6 +597,7 @@ function Editor() {
               setSelectedActionId(null)
             }}
             onPlaceResource={assignResource}
+            onPlacePanelItem={placeActionItem}
           />
         ),
       },
@@ -632,7 +640,7 @@ function Editor() {
           <ActionInspector category={selectedCategory} action={selectedAction}
             categories={categories} actions={actions} panels={panels} resources={resources}
             updateCategory={updateCategory} updateAction={updateAction}
-            toggleCategoryPanel={toggleCategoryPanel} />
+            toggleCategoryPanel={toggleCategoryPanel} toggleActionPanel={toggleActionPanel} />
         ) : (
           <Inspector
             panel={selectedPanel}
@@ -660,6 +668,8 @@ function Editor() {
       updateCategory,
       updateAction,
       toggleCategoryPanel,
+      toggleActionPanel,
+      placeActionItem,
       currentProjectId,
       gameSettings,
       newProject,
@@ -700,6 +710,7 @@ function Editor() {
         actions={actions}
         onSelectAction={selectAction}
         onPlaceResource={assignResource}
+        onPlacePanelItem={placeActionItem}
         onSelectResource={(id) => { setSelectedResourceId(id); setSelectedPanelId(null); setSelectedCategoryId(null); setSelectedActionId(null) }}
         selectedPanelId={selectedPanelId}
         onSelectPanel={(id) => {
