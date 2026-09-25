@@ -10,9 +10,10 @@ type Props = {
   updateCategory: (id: string, name: string) => void
   updateAction: (id: string, patch: Partial<GameAction>) => void
   toggleCategoryPanel: (categoryId: string, panelId: string, checked: boolean) => void
+  toggleActionPanel: (actionId:string,panelId:string,checked:boolean)=>void
 }
 
-export function ActionInspector({category, action, categories, actions, panels, resources, updateCategory, updateAction, toggleCategoryPanel}: Props) {
+export function ActionInspector({category, action, categories, actions, panels, resources, updateCategory, updateAction, toggleCategoryPanel,toggleActionPanel}: Props) {
   if (category) return <div>
     <div className="inspector-field"><label>Category name</label>
       <input value={category.name} onChange={event => updateCategory(category.id,event.target.value)} /></div>
@@ -39,6 +40,16 @@ export function ActionInspector({category, action, categories, actions, panels, 
       <input value={action.name} onChange={event => updateAction(action.id,{name:event.target.value})}/></div>
     <div className="inspector-field"><label>Description</label>
       <input value={action.description} onChange={event => updateAction(action.id,{description:event.target.value})}/></div>
+    <div className="inspector-field"><label>Show this task directly on panels</label>
+      {panels.map(panel=><label className="checkbox-field" key={panel.id}>
+        <input type="checkbox"
+          checked={panel.items.some(item=>item.type==='action'&&item.actionId===action.id)}
+          onChange={event=>toggleActionPanel(action.id,panel.id,event.target.checked)}/>
+        {panel.title}
+      </label>)}
+      {!panels.length && <span className="muted">Create a panel first.</span>}
+      <span className="muted">Alternatively, show its entire category on a panel. You can also drag the task from Project.</span>
+    </div>
     <div className="inspector-field"><label>Category</label><select value={action.categoryId}
       onChange={event => updateAction(action.id,{categoryId:event.target.value})}>
       {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
