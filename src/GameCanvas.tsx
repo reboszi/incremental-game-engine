@@ -8,6 +8,7 @@ export function GameCanvas({
   panels,
   resources = [],
   resourceValues,
+  resourceVisibility,
   selectedPanelId = null,
   onSelectPanel,
   onSelectResource,
@@ -17,6 +18,7 @@ export function GameCanvas({
   panels: Panel[]
   resources?: Resource[]
   resourceValues?: Record<string, number>
+  resourceVisibility?: Record<string, boolean>
   selectedPanelId?: string | null
   onSelectPanel?: (id: string | null) => void
   onSelectResource?: (id: string) => void
@@ -71,7 +73,12 @@ export function GameCanvas({
               {panel.items.map(item => {
                 if (item.type !== 'resource') return null
                 const resource = resources.find(resource => resource.id === item.resourceId)
-                if (!resource || (!editable && !resource.initiallyVisible)) return null
+                if (!resource) return null
+                const visible = editable || (resourceVisibility?.[resource.id] ?? resource.initiallyVisible)
+                if (!visible && resource.hiddenLayout !== 'reserve') return null
+                if (!visible) return (
+                  <div key={item.id} className="panel-item panel-item--reserved" aria-hidden="true" />
+                )
 
                 return (
                   <div
