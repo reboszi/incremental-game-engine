@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { GameCanvas } from './GameCanvas'
 import { loadGame } from './save'
 import { clampResourceValue, initialGameState, loadGameState, saveGameState, setResourceVisibility } from './gameState'
-import type { GameState, } from './gameState'
+import type { GameState } from './gameState'
+import { completeDueTasks, startAction } from './actionRuntime'
 
 export function Player({ projectId }: { projectId: string }) {
   const [project] = useState(() => loadGame(projectId))
   const [gameState, setGameState] = useState<GameState>(() =>
-    project ? loadGameState(project.id, project.resources) : { resourceValues: {}, resourceVisibility: {} })
+    project ? loadGameState(project.id, project.resources, project.actions) : { resourceValues: {}, resourceVisibility: {}, actionVisibility: {}, completedActions: {}, runningTasks: [] })
   const [saveError, setSaveError] = useState(false)
 
   useEffect(() => {
@@ -19,6 +20,12 @@ export function Player({ projectId }: { projectId: string }) {
       setSaveError(true)
     }
   }, [project, gameState])
+
+  useEffect(() => {
+    if (!project) return
+    const interval = window.setInterval(() => setGameState(current => completeDueTasks(current, project)), 250)
+    return () => window.clearInterval(interval)
+  }, [project])
 
   if (!project) {
     return (
@@ -44,7 +51,7 @@ export function Player({ projectId }: { projectId: string }) {
 
   const reset = () => {
     if (!window.confirm('Reset all resource values and visibility to their initial state?')) return
-    setGameState(initialGameState(project.resources))
+    setGameState(initialGameState(project.resources, project.actions))
   }
 
   return (
@@ -54,6 +61,11 @@ export function Player({ projectId }: { projectId: string }) {
         resources={project.resources}
         resourceValues={gameState.resourceValues}
         resourceVisibility={gameState.resourceVisibility}
+        categories={project.categories}
+        actions={project.actions}
+        gameState={gameState}
+        project={project}
+        onRunAction={(id) => setGameState(current => startAction(id, current, project))}
         editable={false}
       />
       <details className="runtime-test-panel">
