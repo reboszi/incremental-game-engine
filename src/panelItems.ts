@@ -1,4 +1,4 @@
-import type { Panel, PanelItem } from './types'
+import type { GameAction, Panel, PanelItem } from './types'
 
 export const RESOURCE_DRAG_TYPE = 'application/x-ige-resource'
 
@@ -166,4 +166,18 @@ export function getPanelDrag(event: { dataTransfer: DataTransfer }): PanelDragPa
 export function isPanelDrag(event: { dataTransfer: DataTransfer }) {
   return !!activePanelDrag || [RESOURCE_DRAG_TYPE,ACTION_DRAG_TYPE,CATEGORY_DRAG_TYPE].some(type=>
     Array.from(event.dataTransfer.types).includes(type))
+}
+
+
+// A task is a member of a category; panel placement always targets the
+// category subpanel. No loose task button can escape its category.
+export function placeTaskCategory(
+  panels: Panel[], action: GameAction, targetPanelId: string,
+  beforeItemId?: string, sourceItemId?: string
+): Panel[] {
+  if (!panels.some(panel=>panel.id===targetPanelId)) return panels
+  const withoutLooseReference = sourceItemId
+    ? panels.map(panel=>({...panel,items:panel.items.filter(item=>item.id!==sourceItemId)}))
+    : panels
+  return placePanelReference(withoutLooseReference,'action-category',action.categoryId,targetPanelId,beforeItemId)
 }
