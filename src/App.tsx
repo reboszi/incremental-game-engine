@@ -302,6 +302,7 @@ function Editor() {
       unit: '',
       displayMode: 'value',
       initiallyVisible: true,
+      hiddenLayout: 'collapse',
     }
 
     setResources((current) => [...current, newResource])
