@@ -446,3 +446,15 @@ button { color: inherit; }
 .action-effect-editor { border: 1px solid #344734; border-radius: 4px; padding: 5px; margin-bottom: 8px; display: grid; gap: 4px; }
 .action-effect-editor > select, .action-effect-editor > input { width: 100%; min-width: 0; height: 32px; }
 .tool-button:disabled { opacity: .35; cursor: not-allowed; }
+
+
+/* Standalone task references share a wrapping row, even inside tall panels. */
+.panel-content--vertical { flex-flow: row wrap; align-content: flex-start; }
+.panel-content--vertical > .panel-item:not(.panel-action-item) {
+  flex: 1 1 100%;
+  width: 100%;
+}
+.panel-action-item { flex: 0 0 auto; min-width: 0; max-width: 100%; cursor: grab; }
+.panel-action-item .action-button { min-width: 110px; width: 100%; }
+.panel-action-item:active { cursor: grabbing; }
+.game-panel--horizontal .panel-action-item { flex: 0 0 auto; }
