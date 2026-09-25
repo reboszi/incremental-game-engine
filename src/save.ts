@@ -1,10 +1,35 @@
-import type { GameProject, ProjectSummary } from './types'
+import type { GameAction, GameProject, Panel, PanelItem, ProjectSummary } from './types'
 
 const PROJECT_INDEX_KEY = 'ige-project-index-v1'
 const PROJECT_STORAGE_PREFIX = 'ige-project-v1:'
 const LEGACY_GAME_STORAGE_KEY = 'ige-game-project-v1'
 
-export const CURRENT_PROJECT_VERSION = 6
+export const CURRENT_PROJECT_VERSION = 7
+
+// Version 6 allowed loose task buttons next to their category. Upgrade them
+// into category subpanels and keep their original position in the panel.
+function normalizePanelItems(panels: Panel[], actions: GameAction[]): Panel[] {
+  return panels.map(panel => {
+    const includedCategories = new Set<string>()
+    const items: PanelItem[] = []
+    for (const item of panel.items) {
+      if (item.type === 'action-category') {
+        if (includedCategories.has(item.categoryId)) continue
+        includedCategories.add(item.categoryId)
+        items.push(item)
+      } else if (item.type === 'action') {
+        const action = actions.find(candidate => candidate.id === item.actionId)
+        if (!action) continue
+        if (includedCategories.has(action.categoryId)) continue
+        includedCategories.add(action.categoryId)
+        items.push({ id: item.id, type: 'action-category', categoryId: action.categoryId })
+      } else {
+        items.push(item)
+      }
+    }
+    return { ...panel, items }
+  })
+}
 
 function normalizeProject(raw: unknown): GameProject | null {
   if (!raw || typeof raw !== 'object') return null
@@ -32,7 +57,7 @@ function normalizeProject(raw: unknown): GameProject | null {
     version: CURRENT_PROJECT_VERSION,
     name: project.name,
     gameSettings: project.gameSettings,
-    panels: project.panels.map(panel => ({ ...panel, items: Array.isArray(panel.items) ? panel.items : [] })),
+    panels: normalizePanelItems(project.panels.map(panel => ({ ...panel, items: Array.isArray(panel.items) ? panel.items : [] })), Array.isArray(project.actions) ? project.actions : []),
     resources: Array.isArray(project.resources)
       ? project.resources.map(resource => ({ ...resource, icon: typeof resource.icon === 'string' ? resource.icon : '◇', hiddenLayout: resource.hiddenLayout === 'reserve' ? 'reserve' as const : 'collapse' as const }))
       : [],
