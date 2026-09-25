@@ -24,7 +24,7 @@ export function ActionInspector({category, action, categories, actions, panels, 
       </label>)}
       {!panels.length && <span className="muted">Create a panel first.</span>}
     </div>
-    <p className="muted">Actions in this category appear together in horizontal, wrapping rows.</p>
+    <p className="muted">This is a subpanel with its own title and horizontal, wrapping task buttons. Drag a task onto another category in Project to regroup it.</p>
   </div>
   if (!action) return null
 
@@ -40,15 +40,15 @@ export function ActionInspector({category, action, categories, actions, panels, 
       <input value={action.name} onChange={event => updateAction(action.id,{name:event.target.value})}/></div>
     <div className="inspector-field"><label>Description</label>
       <input value={action.description} onChange={event => updateAction(action.id,{description:event.target.value})}/></div>
-    <div className="inspector-field"><label>Show this task directly on panels</label>
+    <div className="inspector-field"><label>Show this task's category on panels</label>
       {panels.map(panel=><label className="checkbox-field" key={panel.id}>
         <input type="checkbox"
-          checked={panel.items.some(item=>item.type==='action'&&item.actionId===action.id)}
+          checked={panel.items.some(item=>item.type==='action-category'&&item.categoryId===action.categoryId)}
           onChange={event=>toggleActionPanel(action.id,panel.id,event.target.checked)}/>
         {panel.title}
       </label>)}
       {!panels.length && <span className="muted">Create a panel first.</span>}
-      <span className="muted">Alternatively, show its entire category on a panel. You can also drag the task from Project.</span>
+      <span className="muted">The category is a subpanel: placing this task on a panel displays every task in its category together. Drag the task or category from Project.</span>
     </div>
     <div className="inspector-field"><label>Category</label><select value={action.categoryId}
       onChange={event => updateAction(action.id,{categoryId:event.target.value})}>
