@@ -1,6 +1,6 @@
 import type { DragEvent } from 'react'
 import type { ActionCategory, GameAction, Panel, Resource } from './types'
-import { RESOURCE_DRAG_TYPE, readResourceDrag, ACTION_DRAG_TYPE, CATEGORY_DRAG_TYPE, readActionDrag } from './panelItems'
+import { beginPanelDrag, endPanelDrag, getPanelDrag, isPanelDrag } from './panelItems'
 
 export function ProjectPanel({
   projectName,
@@ -27,36 +27,31 @@ export function ProjectPanel({
   onPlaceResource: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
   onPlacePanelItem: (kind: 'action' | 'action-category', id: string, panelId: string, beforeItemId?: string, itemId?: string) => void
 }) {
-  const startDrag = (event: DragEvent<HTMLElement>, resourceId: string, itemId?: string) => {
-    event.dataTransfer.setData(RESOURCE_DRAG_TYPE, JSON.stringify({ resourceId, itemId }))
-    event.dataTransfer.effectAllowed = 'move'
-  }
+  const startDrag = (event: DragEvent<HTMLElement>, resourceId: string, itemId?: string) =>
+    beginPanelDrag(event, {kind:'resource',id:resourceId,itemId})
 
-  const startPanelDrag = (event: DragEvent<HTMLElement>, kind: 'action'|'action-category', id: string, itemId?: string) => {
-    event.dataTransfer.setData(kind === 'action' ? ACTION_DRAG_TYPE : CATEGORY_DRAG_TYPE, JSON.stringify({id,itemId}))
-    event.dataTransfer.effectAllowed = itemId ? 'move' : 'copy'
-  }
+  const startPanelDrag = (event: DragEvent<HTMLElement>, kind: 'action'|'action-category', id: string, itemId?: string) =>
+    beginPanelDrag(event, {kind,id,itemId})
 
   const allowDrop = (event: DragEvent<HTMLElement>) => {
-    if (![RESOURCE_DRAG_TYPE,ACTION_DRAG_TYPE,CATEGORY_DRAG_TYPE].some(type=>event.dataTransfer.types.includes(type))) return
+    if (!isPanelDrag(event)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
   }
 
   const drop = (event: DragEvent<HTMLElement>, panelId: string, beforeItemId?: string) => {
-    const resourceDrag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
-    const actionDrag = readActionDrag(event.dataTransfer.getData(ACTION_DRAG_TYPE))
-    const categoryDrag = readActionDrag(event.dataTransfer.getData(CATEGORY_DRAG_TYPE))
-    if (resourceDrag && resources.some(resource=>resource.id===resourceDrag.resourceId)) {
-      event.preventDefault();event.stopPropagation()
-      onPlaceResource(resourceDrag.resourceId, panelId, beforeItemId, resourceDrag.itemId)
-    } else if(actionDrag && actions.some(action=>action.id===actionDrag.id)) {
-      event.preventDefault();event.stopPropagation()
-      onPlacePanelItem('action',actionDrag.id,panelId,beforeItemId,actionDrag.itemId)
-    } else if(categoryDrag && categories.some(category=>category.id===categoryDrag.id)) {
-      event.preventDefault();event.stopPropagation()
-      onPlacePanelItem('action-category',categoryDrag.id,panelId,beforeItemId,categoryDrag.itemId)
+    const drag = getPanelDrag(event)
+    if (!drag) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (drag.kind === 'resource' && resources.some(resource=>resource.id===drag.id)) {
+      onPlaceResource(drag.id,panelId,beforeItemId,drag.itemId)
+    } else if (drag.kind === 'action' && actions.some(action=>action.id===drag.id)) {
+      onPlacePanelItem('action',drag.id,panelId,beforeItemId,drag.itemId)
+    } else if (drag.kind === 'action-category' && categories.some(category=>category.id===drag.id)) {
+      onPlacePanelItem('action-category',drag.id,panelId,beforeItemId,drag.itemId)
     }
+    endPanelDrag()
   }
 
   return (
@@ -77,14 +72,14 @@ export function ProjectPanel({
           {panel.items.map(item => {
             if (item.type === 'action-category') {
               const category = categories.find(candidate => candidate.id === item.categoryId)
-              return category ? <button key={item.id} type="button" draggable className="tree-row tree-attached tree-button"
+              return category ? <button key={item.id} type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-attached tree-button"
                 onDragStart={event=>startPanelDrag(event,'action-category',category.id,item.id)}
                 onDragOver={allowDrop} onDrop={event=>drop(event,panel.id,item.id)}
                 onClick={()=>onSelectCategory(category.id)}>▦ {category.name}</button> : null
             }
             if (item.type === 'action') {
               const action = actions.find(candidate=>candidate.id===item.actionId)
-              return action ? <button key={item.id} type="button" draggable className="tree-row tree-attached tree-button"
+              return action ? <button key={item.id} type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-attached tree-button"
                 onDragStart={event=>startPanelDrag(event,'action',action.id,item.id)}
                 onDragOver={allowDrop} onDrop={event=>drop(event,panel.id,item.id)}
                 onClick={()=>onSelectAction(action.id)}>▶ {action.name}</button> : null
@@ -100,6 +95,8 @@ export function ProjectPanel({
                 key={item.id}
                 type="button"
                 draggable
+                onDragEnd={endPanelDrag}
+          onDragEnd={endPanelDrag}
                 className="tree-row tree-attached tree-button"
                 onDragStart={event => startDrag(event, resource.id, item.id)}
                 onDragOver={allowDrop}
@@ -117,6 +114,7 @@ export function ProjectPanel({
         <button
           type="button"
           draggable
+          onDragEnd={endPanelDrag}
           className="tree-row tree-grandchild tree-button"
           key={resource.id}
           onClick={() => onSelectResource(resource.id)}
@@ -127,11 +125,11 @@ export function ProjectPanel({
       ))}
       <div className="tree-row tree-child muted">Action categories</div>
       {categories.map(category => <div key={category.id}>
-        <button type="button" draggable className="tree-row tree-grandchild tree-button"
+        <button type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-grandchild tree-button"
           onDragStart={event=>startPanelDrag(event,'action-category',category.id)}
           onClick={() => onSelectCategory(category.id)}>▦ {category.name}</button>
         {actions.filter(action => action.categoryId === category.id).map(action =>
-          <button key={action.id} type="button" draggable className="tree-row tree-attached tree-button"
+          <button key={action.id} type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-attached tree-button"
             onDragStart={event=>startPanelDrag(event,'action',action.id)}
             onClick={() => onSelectAction(action.id)}>▶ {action.name}</button>)}
       </div>)}
