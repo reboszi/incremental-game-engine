@@ -362,6 +362,10 @@ function Editor() {
   const updateAction = useCallback((id: string, changes: Partial<GameAction>) => {
     setActions(current => current.map(action => action.id === id ? {...action,...changes} : action))
   }, [])
+  const moveActionToCategory = useCallback((actionId:string,categoryId:string)=>{
+    if (!categories.some(category=>category.id===categoryId)) return
+    setActions(current=>current.map(action=>action.id===actionId ? {...action,categoryId}:action))
+  },[categories])
   const toggleCategoryPanel = useCallback((categoryId: string, panelId: string, checked: boolean) => {
     setPanels(current => current.map(panel => panel.id !== panelId ? panel :
       {...panel,items:checked ?
@@ -622,6 +626,7 @@ function Editor() {
             }}
             onPlaceResource={assignResource}
             onPlacePanelItem={placeActionItem}
+            onMoveActionToCategory={moveActionToCategory}
           />
         ),
       },
@@ -694,6 +699,7 @@ function Editor() {
       toggleCategoryPanel,
       toggleActionPanel,
       placeActionItem,
+      moveActionToCategory,
       currentProjectId,
       gameSettings,
       newProject,
