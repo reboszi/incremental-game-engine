@@ -88,6 +88,8 @@ export function GameCanvas({
                 if (item.type === 'action-category') {
                   const category = categories.find(category=>category.id===item.categoryId)
                   if (!category) return null
+                  if (!editable && !actions.some(action => action.categoryId === category.id &&
+                    (gameState?.actionVisibility[action.id] ?? action.initiallyVisible))) return null
                   return <div key={item.id} className="panel-item panel-category-item"
                     onClick={event=>event.stopPropagation()}>
                     <ActionCategoryView category={category}
