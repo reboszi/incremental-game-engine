@@ -14,6 +14,7 @@ export function ProjectPanel({
   onSelectResource,
   onPlaceResource,
   onPlacePanelItem,
+  onMoveActionToCategory,
 }: {
   projectName: string
   panels: Panel[]
@@ -26,6 +27,7 @@ export function ProjectPanel({
   onSelectResource: (id: string) => void
   onPlaceResource: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
   onPlacePanelItem: (kind: 'action' | 'action-category', id: string, panelId: string, beforeItemId?: string, itemId?: string) => void
+  onMoveActionToCategory: (actionId:string,categoryId:string)=>void
 }) {
   const startDrag = (event: DragEvent<HTMLElement>, resourceId: string, itemId?: string) =>
     beginPanelDrag(event, {kind:'resource',id:resourceId,itemId})
@@ -122,10 +124,22 @@ export function ProjectPanel({
           {resource.icon || '◇'} {resource.name}
         </button>
       ))}
-      <div className="tree-row tree-child muted">Action categories</div>
+      <div className="tree-row tree-child muted">Action categories (drop tasks here to regroup)</div>
       {categories.map(category => <div key={category.id}>
-        <button type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-grandchild tree-button"
+        <button type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-grandchild tree-button panel-drop-target"
           onDragStart={event=>startPanelDrag(event,'action-category',category.id)}
+          onDragOver={event=>{
+            if(getPanelDrag(event)?.kind !== 'action' && !Array.from(event.dataTransfer.types).includes('application/x-ige-action')) return
+            event.preventDefault()
+            event.dataTransfer.dropEffect='move'
+          }}
+          onDrop={event=>{
+            const dragged=getPanelDrag(event)
+            if(!dragged || dragged.kind!=='action' || !actions.some(action=>action.id===dragged.id)) return
+            event.preventDefault();event.stopPropagation()
+            onMoveActionToCategory(dragged.id,category.id)
+            endPanelDrag()
+          }}
           onClick={() => onSelectCategory(category.id)}>▦ {category.name}</button>
         {actions.filter(action => action.categoryId === category.id).map(action =>
           <button key={action.id} type="button" draggable onDragEnd={endPanelDrag} className="tree-row tree-attached tree-button"
