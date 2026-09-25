@@ -69,7 +69,7 @@ export type ActionRequirement = {
 }
 
 export type ActionEffect =
-  | { id: string; type: 'add-resource' | 'set-resource'; resourceId: string; amount: number }
+  | { id: string; type: 'add-resource' | 'set-resource' | 'grant-resource'; resourceId: string; amount: number }
   | { id: string; type: 'reveal-resource' | 'hide-resource'; resourceId: string }
   | { id: string; type: 'reveal-action' | 'hide-action'; actionId: string }
 
