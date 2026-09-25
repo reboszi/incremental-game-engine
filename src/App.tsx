@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
-import type { GameProject, GameSettings, Panel, ProjectSummary, Resource } from './types'
+import type { ActionCategory, GameAction, GameProject, GameSettings, Panel, ProjectSummary, Resource } from './types'
 import { CURRENT_PROJECT_VERSION, deleteGame, listProjects, loadGame, saveGame } from './save'
 import { GameCanvas } from './GameCanvas'
 import { Player } from './Player'
@@ -7,6 +7,7 @@ import { ProjectPanel } from './ProjectPanel'
 import { placeResource, setResourcePanel } from './panelItems'
 import { ColorField } from './ColorField'
 import { Inspector } from './Inspector'
+import { ActionInspector } from './ActionInspector'
 import { FloatingWindow, type WindowId, type WindowState } from './FloatingWindow'
 
 type WindowConfig = {
@@ -51,21 +52,27 @@ function loadWindowState(): Record<WindowId, WindowState> {
 function Toolbox({
   onCreatePanel,
   onCreateResource,
+  onCreateCategory,
+  onCreateAction,
 }: {
   onCreatePanel: () => void
   onCreateResource: () => void
+  onCreateCategory: () => void
+  onCreateAction: () => void
 }) {
-  const tools = ['Panel', 'Resource', 'Action / Task', 'State / Unlock', 'Story Event', 'Directive']
+  const tools = ['Panel', 'Resource', 'Action Category', 'Action / Task', 'State / Unlock', 'Story Event', 'Directive']
 
   const handleTool = (tool: string) => {
     if (tool === 'Panel') onCreatePanel()
     if (tool === 'Resource') onCreateResource()
+    if (tool === 'Action Category') onCreateCategory()
+    if (tool === 'Action / Task') onCreateAction()
   }
 
   return (
     <div className="tool-list">
       {tools.map((tool) => (
-        <button type="button" className="tool-button" key={tool} onClick={() => handleTool(tool)}>
+        <button type="button" className="tool-button" key={tool} disabled={!['Panel','Resource','Action Category','Action / Task'].includes(tool)} onClick={() => handleTool(tool)}>
           <span className="tool-plus">+</span>
           <span>{tool}</span>
         </button>
@@ -244,9 +251,13 @@ function Editor() {
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
   const [panels, setPanels] = useState<Panel[]>([])
   const [resources, setResources] = useState<Resource[]>([])
+  const [categories, setCategories] = useState<ActionCategory[]>([])
+  const [actions, setActions] = useState<GameAction[]>([])
   const [projects, setProjects] = useState<ProjectSummary[]>(() => listProjects())
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [selectedActionId, setSelectedActionId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(false)
@@ -310,6 +321,51 @@ function Editor() {
     setSelectedResourceId(newResource.id)
   }, [])
 
+  const createCategory = useCallback(() => {
+    const category: ActionCategory = { id: crypto.randomUUID(), name: 'New Category' }
+    setCategories(current => [...current, category])
+    setSelectedCategoryId(category.id); setSelectedActionId(null)
+    setSelectedPanelId(null); setSelectedResourceId(null)
+  }, [])
+
+  const createAction = useCallback(() => {
+    let categoryId = categories[0]?.id
+    if (!categoryId) {
+      const category: ActionCategory = { id: crypto.randomUUID(), name: 'Tasks' }
+      categoryId = category.id
+      setCategories(current => [...current, category])
+    }
+    const action: GameAction = {
+      id: crypto.randomUUID(), name: 'New Action', description: '',
+      categoryId, durationSeconds: 0, repeatable: true,
+      initiallyVisible: true, requirements: [], effects: [],
+    }
+    setActions(current => [...current, action])
+    setSelectedActionId(action.id); setSelectedCategoryId(null)
+    setSelectedPanelId(null); setSelectedResourceId(null)
+  }, [categories])
+
+  const updateCategory = useCallback((id: string, name: string) => {
+    setCategories(current => current.map(category => category.id === id ? {...category,name} : category))
+  }, [])
+  const updateAction = useCallback((id: string, changes: Partial<GameAction>) => {
+    setActions(current => current.map(action => action.id === id ? {...action,...changes} : action))
+  }, [])
+  const toggleCategoryPanel = useCallback((categoryId: string, panelId: string, checked: boolean) => {
+    setPanels(current => current.map(panel => panel.id !== panelId ? panel :
+      {...panel,items:checked ?
+        (panel.items.some(item=>item.type==='action-category' && item.categoryId===categoryId) ? panel.items :
+          [...panel.items,{id:crypto.randomUUID(),type:'action-category' as const,categoryId}]) :
+        panel.items.filter(item=>item.type!=='action-category' || item.categoryId!==categoryId)}))
+  }, [])
+
+  const selectCategory = useCallback((id: string) => {
+    setSelectedCategoryId(id); setSelectedActionId(null); setSelectedPanelId(null); setSelectedResourceId(null)
+  }, [])
+  const selectAction = useCallback((id: string) => {
+    setSelectedActionId(id); setSelectedCategoryId(null); setSelectedPanelId(null); setSelectedResourceId(null)
+  }, [])
+
   const updatePanel = useCallback((id: string, changes: Partial<Panel>) => {
     setPanels((current) =>
       current.map((panel) =>
@@ -353,6 +409,8 @@ function Editor() {
 
   const selectedResource =
     resources.find((resource) => resource.id === selectedResourceId) ?? null
+  const selectedCategory = categories.find(category => category.id === selectedCategoryId) ?? null
+  const selectedAction = actions.find(action => action.id === selectedActionId) ?? null
 
   const buildProject = useCallback((): GameProject => ({
     id: currentProjectId,
@@ -361,7 +419,9 @@ function Editor() {
     gameSettings,
     panels,
     resources,
-  }), [currentProjectId, projectName, gameSettings, panels, resources])
+    categories,
+    actions,
+  }), [currentProjectId, projectName, gameSettings, panels, resources, categories, actions])
 
   const saveProject = useCallback(() => {
     saveGame(buildProject())
@@ -381,6 +441,8 @@ function Editor() {
       gameSettings: { ...DEFAULT_GAME_SETTINGS },
       panels: [],
       resources: [],
+      categories: [],
+      actions: [],
     }
 
     saveGame(project)
@@ -389,6 +451,10 @@ function Editor() {
     setGameSettings({ ...DEFAULT_GAME_SETTINGS })
     setPanels([])
     setResources([])
+    setCategories([])
+    setActions([])
+    setSelectedCategoryId(null)
+    setSelectedActionId(null)
     setSelectedPanelId(null)
     setSelectedResourceId(null)
     setSettingsOpen(false)
@@ -405,6 +471,10 @@ function Editor() {
     setGameSettings(project.gameSettings)
     setPanels(project.panels)
     setResources(project.resources)
+    setCategories(project.categories)
+    setActions(project.actions)
+    setSelectedCategoryId(null)
+    setSelectedActionId(null)
     setSelectedPanelId(null)
     setSelectedResourceId(null)
     setProjectsOpen(false)
@@ -426,6 +496,10 @@ function Editor() {
       setGameSettings({ ...DEFAULT_GAME_SETTINGS })
       setPanels([])
       setResources([])
+      setCategories([])
+      setActions([])
+      setSelectedCategoryId(null)
+      setSelectedActionId(null)
       setSelectedPanelId(null)
       setSelectedResourceId(null)
     }
@@ -485,7 +559,7 @@ function Editor() {
         title: 'TOOLBOX',
         minWidth: 190,
         minHeight: 210,
-        children: <Toolbox onCreatePanel={createPanel} onCreateResource={createResource} />,
+        children: <Toolbox onCreatePanel={createPanel} onCreateResource={createResource} onCreateCategory={createCategory} onCreateAction={createAction} />,
       },
       {
         id: 'project',
@@ -497,13 +571,21 @@ function Editor() {
             projectName={projectName}
             panels={panels}
             resources={resources}
+            categories={categories}
+            actions={actions}
+            onSelectCategory={selectCategory}
+            onSelectAction={selectAction}
             onSelectPanel={(id) => {
               setSelectedPanelId(id)
               setSelectedResourceId(null)
+              setSelectedCategoryId(null)
+              setSelectedActionId(null)
             }}
             onSelectResource={(id) => {
               setSelectedResourceId(id)
               setSelectedPanelId(null)
+              setSelectedCategoryId(null)
+              setSelectedActionId(null)
             }}
             onPlaceResource={assignResource}
           />
@@ -544,7 +626,12 @@ function Editor() {
         title: 'PROPERTIES',
         minWidth: 270,
         minHeight: 240,
-        children: (
+        children: selectedAction || selectedCategory ? (
+          <ActionInspector category={selectedCategory} action={selectedAction}
+            categories={categories} actions={actions} panels={panels} resources={resources}
+            updateCategory={updateCategory} updateAction={updateAction}
+            toggleCategoryPanel={toggleCategoryPanel} />
+        ) : (
           <Inspector
             panel={selectedPanel}
             resource={selectedResource}
@@ -559,7 +646,18 @@ function Editor() {
     [
       createPanel,
       createResource,
+      createCategory,
+      createAction,
       assignResource,
+      categories,
+      actions,
+      selectedCategory,
+      selectedAction,
+      selectCategory,
+      selectAction,
+      updateCategory,
+      updateAction,
+      toggleCategoryPanel,
       currentProjectId,
       gameSettings,
       newProject,
@@ -596,12 +694,15 @@ function Editor() {
       <GameCanvas
         panels={panels}
         resources={resources}
+        categories={categories}
+        actions={actions}
+        onSelectAction={selectAction}
         onPlaceResource={assignResource}
-        onSelectResource={(id) => { setSelectedResourceId(id); setSelectedPanelId(null) }}
+        onSelectResource={(id) => { setSelectedResourceId(id); setSelectedPanelId(null); setSelectedCategoryId(null); setSelectedActionId(null) }}
         selectedPanelId={selectedPanelId}
         onSelectPanel={(id) => {
           setSelectedPanelId(id)
-          if (id) setSelectedResourceId(null)
+          if (id) { setSelectedResourceId(null); setSelectedCategoryId(null); setSelectedActionId(null) }
         }}
         editable
       />
