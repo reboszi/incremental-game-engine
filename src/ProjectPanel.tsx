@@ -1,6 +1,6 @@
 import type { DragEvent } from 'react'
 import type { ActionCategory, GameAction, Panel, Resource } from './types'
-import { RESOURCE_DRAG_TYPE, readResourceDrag } from './panelItems'
+import { RESOURCE_DRAG_TYPE, readResourceDrag, ACTION_DRAG_TYPE, CATEGORY_DRAG_TYPE, readActionDrag } from './panelItems'
 
 export function ProjectPanel({
   projectName,
@@ -13,6 +13,7 @@ export function ProjectPanel({
   onSelectPanel,
   onSelectResource,
   onPlaceResource,
+  onPlacePanelItem,
 }: {
   projectName: string
   panels: Panel[]
@@ -24,24 +25,38 @@ export function ProjectPanel({
   onSelectPanel: (id: string) => void
   onSelectResource: (id: string) => void
   onPlaceResource: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
+  onPlacePanelItem: (kind: 'action' | 'action-category', id: string, panelId: string, beforeItemId?: string, itemId?: string) => void
 }) {
   const startDrag = (event: DragEvent<HTMLElement>, resourceId: string, itemId?: string) => {
     event.dataTransfer.setData(RESOURCE_DRAG_TYPE, JSON.stringify({ resourceId, itemId }))
     event.dataTransfer.effectAllowed = 'move'
   }
 
+  const startPanelDrag = (event: DragEvent<HTMLElement>, kind: 'action'|'action-category', id: string, itemId?: string) => {
+    event.dataTransfer.setData(kind === 'action' ? ACTION_DRAG_TYPE : CATEGORY_DRAG_TYPE, JSON.stringify({id,itemId}))
+    event.dataTransfer.effectAllowed = itemId ? 'move' : 'copy'
+  }
+
   const allowDrop = (event: DragEvent<HTMLElement>) => {
-    if (!event.dataTransfer.types.includes(RESOURCE_DRAG_TYPE)) return
+    if (![RESOURCE_DRAG_TYPE,ACTION_DRAG_TYPE,CATEGORY_DRAG_TYPE].some(type=>event.dataTransfer.types.includes(type))) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
   }
 
   const drop = (event: DragEvent<HTMLElement>, panelId: string, beforeItemId?: string) => {
-    const drag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
-    if (!drag || !resources.some(resource => resource.id === drag.resourceId)) return
-    event.preventDefault()
-    event.stopPropagation()
-    onPlaceResource(drag.resourceId, panelId, beforeItemId, drag.itemId)
+    const resourceDrag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
+    const actionDrag = readActionDrag(event.dataTransfer.getData(ACTION_DRAG_TYPE))
+    const categoryDrag = readActionDrag(event.dataTransfer.getData(CATEGORY_DRAG_TYPE))
+    if (resourceDrag && resources.some(resource=>resource.id===resourceDrag.resourceId)) {
+      event.preventDefault();event.stopPropagation()
+      onPlaceResource(resourceDrag.resourceId, panelId, beforeItemId, resourceDrag.itemId)
+    } else if(actionDrag && actions.some(action=>action.id===actionDrag.id)) {
+      event.preventDefault();event.stopPropagation()
+      onPlacePanelItem('action',actionDrag.id,panelId,beforeItemId,actionDrag.itemId)
+    } else if(categoryDrag && categories.some(category=>category.id===categoryDrag.id)) {
+      event.preventDefault();event.stopPropagation()
+      onPlacePanelItem('action-category',categoryDrag.id,panelId,beforeItemId,categoryDrag.itemId)
+    }
   }
 
   return (
@@ -59,11 +74,22 @@ export function ProjectPanel({
           >
             {panel.title}
           </button>
-          {panel.items.filter(item => item.type === 'action-category').map(item => {
-            if (item.type !== 'action-category') return null
-            const category = categories.find(candidate => candidate.id === item.categoryId)
-            return category ? <button key={item.id} type="button" className="tree-row tree-attached tree-button"
-              onClick={() => onSelectCategory(category.id)}>▦ {category.name}</button> : null
+          {panel.items.map(item => {
+            if (item.type === 'action-category') {
+              const category = categories.find(candidate => candidate.id === item.categoryId)
+              return category ? <button key={item.id} type="button" draggable className="tree-row tree-attached tree-button"
+                onDragStart={event=>startPanelDrag(event,'action-category',category.id,item.id)}
+                onDragOver={allowDrop} onDrop={event=>drop(event,panel.id,item.id)}
+                onClick={()=>onSelectCategory(category.id)}>▦ {category.name}</button> : null
+            }
+            if (item.type === 'action') {
+              const action = actions.find(candidate=>candidate.id===item.actionId)
+              return action ? <button key={item.id} type="button" draggable className="tree-row tree-attached tree-button"
+                onDragStart={event=>startPanelDrag(event,'action',action.id,item.id)}
+                onDragOver={allowDrop} onDrop={event=>drop(event,panel.id,item.id)}
+                onClick={()=>onSelectAction(action.id)}>▶ {action.name}</button> : null
+            }
+            return null
           })}
           {panel.items.map(item => {
             if (item.type !== 'resource') return null
@@ -101,9 +127,12 @@ export function ProjectPanel({
       ))}
       <div className="tree-row tree-child muted">Action categories</div>
       {categories.map(category => <div key={category.id}>
-        <button type="button" className="tree-row tree-grandchild tree-button" onClick={() => onSelectCategory(category.id)}>▦ {category.name}</button>
+        <button type="button" draggable className="tree-row tree-grandchild tree-button"
+          onDragStart={event=>startPanelDrag(event,'action-category',category.id)}
+          onClick={() => onSelectCategory(category.id)}>▦ {category.name}</button>
         {actions.filter(action => action.categoryId === category.id).map(action =>
-          <button key={action.id} type="button" className="tree-row tree-attached tree-button"
+          <button key={action.id} type="button" draggable className="tree-row tree-attached tree-button"
+            onDragStart={event=>startPanelDrag(event,'action',action.id)}
             onClick={() => onSelectAction(action.id)}>▶ {action.name}</button>)}
       </div>)}
       <div className="tree-row tree-child muted">Story</div>
