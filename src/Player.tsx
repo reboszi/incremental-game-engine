@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { GameCanvas } from './GameCanvas'
 import { loadGame } from './save'
-import { clampResourceValue, initialGameState, loadGameState, saveGameState } from './gameState'
+import { clampResourceValue, initialGameState, loadGameState, saveGameState, setResourceVisibility } from './gameState'
 import type { GameState, } from './gameState'
 
 export function Player({ projectId }: { projectId: string }) {
   const [project] = useState(() => loadGame(projectId))
   const [gameState, setGameState] = useState<GameState>(() =>
-    project ? loadGameState(project.id, project.resources) : { resourceValues: {} })
+    project ? loadGameState(project.id, project.resources) : { resourceValues: {}, resourceVisibility: {} })
   const [saveError, setSaveError] = useState(false)
 
   useEffect(() => {
@@ -33,6 +33,7 @@ export function Player({ projectId }: { projectId: string }) {
     const resource = project.resources.find(item => item.id === resourceId)
     if (!resource) return
     setGameState(previous => ({
+      ...previous,
       resourceValues: {
         ...previous.resourceValues,
         [resourceId]: clampResourceValue(resource,
@@ -42,7 +43,7 @@ export function Player({ projectId }: { projectId: string }) {
   }
 
   const reset = () => {
-    if (!window.confirm('Reset all resource values to their initial values?')) return
+    if (!window.confirm('Reset all resource values and visibility to their initial state?')) return
     setGameState(initialGameState(project.resources))
   }
 
@@ -52,12 +53,13 @@ export function Player({ projectId }: { projectId: string }) {
         panels={project.panels}
         resources={project.resources}
         resourceValues={gameState.resourceValues}
+        resourceVisibility={gameState.resourceVisibility}
         editable={false}
       />
       <details className="runtime-test-panel">
         <summary>Runtime test controls</summary>
         <div className="runtime-test-body">
-          <p>Temporary controls for testing resources. Values are saved separately from the editor project.</p>
+          <p>Temporary controls: adjust resource values and simulate Reveal/Hide effects. Both are saved separately from the editor project.</p>
           {project.resources.length === 0 && <p>No resources in this game yet.</p>}
           {project.resources.map(resource => (
             <div key={resource.id} className="runtime-test-row">
@@ -69,9 +71,16 @@ export function Player({ projectId }: { projectId: string }) {
               <strong>{gameState.resourceValues[resource.id] ?? resource.initialValue}</strong>
               <button type="button" onClick={() => adjust(resource.id, 1)}>+1</button>
               <button type="button" onClick={() => adjust(resource.id, 10)}>+10</button>
+              <button type="button" className="runtime-visibility-button"
+                aria-pressed={gameState.resourceVisibility[resource.id] ?? resource.initiallyVisible}
+                onClick={() => setGameState(previous =>
+                  setResourceVisibility(previous, resource.id,
+                    !(previous.resourceVisibility[resource.id] ?? resource.initiallyVisible)))}>
+                {(gameState.resourceVisibility[resource.id] ?? resource.initiallyVisible) ? 'Hide' : 'Reveal'}
+              </button>
             </div>
           ))}
-          <button className="runtime-reset" type="button" onClick={reset}>Reset resource values</button>
+          <button className="runtime-reset" type="button" onClick={reset}>Reset values and visibility</button>
           {saveError && <p role="alert">Unable to save player progress in this browser.</p>}
         </div>
       </details>
