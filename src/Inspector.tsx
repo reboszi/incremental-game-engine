@@ -151,6 +151,17 @@ export function Inspector({
           />
           Visible at game start
         </label>
+        <div className="inspector-field">
+          <label>While hidden</label>
+          <select value={resource.hiddenLayout ?? 'collapse'}
+            onChange={event => onUpdateResource(resource.id, {
+              hiddenLayout: event.target.value as Resource['hiddenLayout'],
+            })}>
+            <option value="collapse">Collapse (no gap)</option>
+            <option value="reserve">Reserve empty space</option>
+          </select>
+          <span className="muted">Reveal and Hide will affect all panels referencing this resource.</span>
+        </div>
       </div>
     )
   }
