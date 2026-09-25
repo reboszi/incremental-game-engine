@@ -319,6 +319,8 @@ function Editor() {
     setResources((current) => [...current, newResource])
     setSelectedPanelId(null)
     setSelectedResourceId(newResource.id)
+    setSelectedCategoryId(null)
+    setSelectedActionId(null)
   }, [])
 
   const createCategory = useCallback(() => {
