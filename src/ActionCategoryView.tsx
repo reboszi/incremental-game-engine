@@ -19,7 +19,7 @@ export function ActionCategoryView({
     <div className="action-category-title">{category.name}</div>
     <div className="action-button-row">
       {visible.map(action => <ActionButton key={action.id} action={action} editable={editable}
-        gameState={gameState} project={project} onSelectAction={onSelectAction} onRunAction={onRunAction}/>)}}
+        gameState={gameState} project={project} onSelectAction={onSelectAction} onRunAction={onRunAction}/>) }
     </div>
   </section>
 }
