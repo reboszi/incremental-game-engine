@@ -19,7 +19,7 @@ export function readResourceDrag(data: string): ResourceDrag | null {
 
 export function resourcePanelIds(panels: Panel[], resourceId: string): string[] {
   return panels
-    .filter(panel => panel.items.some(item => item.type === 'resource' && item.resourceId === resourceId))
+    .filter(panel => panel.items.some(item => item.type === 'resource' && item.type === 'resource' && item.resourceId === resourceId))
     .map(panel => panel.id)
 }
 
@@ -35,10 +35,10 @@ export function placeResource(
 
   // One reference per resource in a panel; moving within that panel still reorders it.
   const target = panels.find(panel => panel.id === targetPanelId)!
-  if (target.items.some(item => item.resourceId === resourceId && item.id !== itemId)) return panels
+  if (target.items.some(item => item.type === 'resource' && item.resourceId === resourceId && item.id !== itemId)) return panels
 
   const existing = itemId
-    ? panels.flatMap(panel => panel.items).find(item => item.id === itemId && item.resourceId === resourceId)
+    ? panels.flatMap(panel => panel.items).find(item => item.id === itemId && item.type === 'resource' && item.resourceId === resourceId)
     : undefined
 
   const item: PanelItem = existing ?? { id: crypto.randomUUID(), type: 'resource', resourceId }
@@ -58,11 +58,11 @@ export function placeResource(
 
 export function setResourcePanel(panels: Panel[], resourceId: string, panelId: string, enabled: boolean): Panel[] {
   if (enabled) {
-    if (panels.some(panel => panel.id === panelId && panel.items.some(item => item.resourceId === resourceId))) return panels
+    if (panels.some(panel => panel.id === panelId && panel.items.some(item => item.type === 'resource' && item.resourceId === resourceId))) return panels
     return placeResource(panels, resourceId, panelId)
   }
   return panels.map(panel => panel.id === panelId
-    ? { ...panel, items: panel.items.filter(item => item.resourceId !== resourceId) }
+    ? { ...panel, items: panel.items.filter(item => item.type !== 'resource' || item.resourceId !== resourceId) }
     : panel)
 }
 
