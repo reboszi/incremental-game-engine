@@ -1,7 +1,7 @@
-import type { DragEvent } from 'react'
+import { useState, type DragEvent } from 'react'
 import type { ActionCategory, GameAction, GameProject, Panel, Resource } from './types'
 import { PANEL_SLOTS } from './layout'
-import { RESOURCE_DRAG_TYPE, readResourceDrag, ACTION_DRAG_TYPE, CATEGORY_DRAG_TYPE, readActionDrag } from './panelItems'
+import { beginPanelDrag, endPanelDrag, getPanelDrag, isPanelDrag } from './panelItems'
 import { ResourceView } from './ResourceView'
 import { ActionCategoryView } from './ActionCategoryView'
 import { ActionButton } from './ActionButton'
@@ -42,27 +42,30 @@ export function GameCanvas({
   onPlacePanelItem?: (kind:'action'|'action-category',id:string,panelId:string,beforeItemId?:string,itemId?:string)=>void
   editable: boolean
 }) {
-  const allowDrop = (event: DragEvent<HTMLElement>) => {
-    if (!editable || ![RESOURCE_DRAG_TYPE,ACTION_DRAG_TYPE,CATEGORY_DRAG_TYPE].some(type=>event.dataTransfer.types.includes(type))) return
+  const [dragOverPanelId, setDragOverPanelId] = useState<string | null>(null)
+
+  const allowDrop = (event: DragEvent<HTMLElement>, panelId: string) => {
+    if (!editable || !isPanelDrag(event)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
+    setDragOverPanelId(panelId)
   }
 
   const placeDropped = (event: DragEvent<HTMLElement>, panelId: string, beforeItemId?: string) => {
     if (!editable) return
-    const resourceDrag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
-    const actionDrag = readActionDrag(event.dataTransfer.getData(ACTION_DRAG_TYPE))
-    const categoryDrag = readActionDrag(event.dataTransfer.getData(CATEGORY_DRAG_TYPE))
-    if (resourceDrag && resources.some(resource=>resource.id===resourceDrag.resourceId)) {
-      event.preventDefault();event.stopPropagation()
-      onPlaceResource?.(resourceDrag.resourceId,panelId,beforeItemId,resourceDrag.itemId)
-    } else if (actionDrag && actions.some(action=>action.id===actionDrag.id)) {
-      event.preventDefault();event.stopPropagation()
-      onPlacePanelItem?.('action',actionDrag.id,panelId,beforeItemId,actionDrag.itemId)
-    } else if (categoryDrag && categories.some(category=>category.id===categoryDrag.id)) {
-      event.preventDefault();event.stopPropagation()
-      onPlacePanelItem?.('action-category',categoryDrag.id,panelId,beforeItemId,categoryDrag.itemId)
+    const drag = getPanelDrag(event)
+    if (!drag) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (drag.kind === 'resource' && resources.some(resource=>resource.id===drag.id)) {
+      onPlaceResource?.(drag.id,panelId,beforeItemId,drag.itemId)
+    } else if (drag.kind === 'action' && actions.some(action=>action.id===drag.id)) {
+      onPlacePanelItem?.('action',drag.id,panelId,beforeItemId,drag.itemId)
+    } else if (drag.kind === 'action-category' && categories.some(category=>category.id===drag.id)) {
+      onPlacePanelItem?.('action-category',drag.id,panelId,beforeItemId,drag.itemId)
     }
+    setDragOverPanelId(null)
+    endPanelDrag()
   }
 
   return (
@@ -77,13 +80,16 @@ export function GameCanvas({
         return (
           <div
             key={panel.id}
-            className={`game-panel game-panel--${slot.direction} ${editable && selectedPanelId === panel.id ? 'selected' : ''}`}
+            className={`game-panel game-panel--${slot.direction} ${editable && selectedPanelId === panel.id ? 'selected' : ''} ${editable && dragOverPanelId === panel.id ? 'panel-drag-over' : ''}`}
             onClick={event => {
               if (!editable) return
               event.stopPropagation()
               onSelectPanel?.(panel.id)
             }}
-            onDragOver={allowDrop}
+            onDragOver={event=>allowDrop(event,panel.id)}
+            onDragLeave={event => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragOverPanelId(null)
+            }}
             onDrop={event => placeDropped(event, panel.id)}
             style={{
               gridRow: `${slot.rowStart} / span ${slot.rowSpan}`,
@@ -101,13 +107,13 @@ export function GameCanvas({
                   if (!action || (!editable && !(gameState?.actionVisibility[action.id] ?? action.initiallyVisible))) return null
                   return <div key={item.id} className="panel-item panel-action-item"
                     draggable={editable}
+                    onDragEnd={() => {endPanelDrag();setDragOverPanelId(null)}}
                     onDragStart={event => {
                       if (!editable) return
                       event.stopPropagation()
-                      event.dataTransfer.setData(ACTION_DRAG_TYPE,JSON.stringify({id:action.id,itemId:item.id}))
-                      event.dataTransfer.effectAllowed='move'
+                      beginPanelDrag(event,{kind:'action',id:action.id,itemId:item.id})
                     }}
-                    onDragOver={allowDrop} onDrop={event=>placeDropped(event,panel.id,item.id)}
+                    onDragOver={event=>allowDrop(event,panel.id)} onDrop={event=>placeDropped(event,panel.id,item.id)}
                     onClick={event=>event.stopPropagation()}>
                     <ActionButton action={action} editable={editable} gameState={gameState}
                       project={project} onSelectAction={onSelectAction} onRunAction={onRunAction}/>
@@ -120,13 +126,13 @@ export function GameCanvas({
                     (gameState?.actionVisibility[action.id] ?? action.initiallyVisible))) return null
                   return <div key={item.id} className="panel-item panel-category-item"
                     draggable={editable}
+                    onDragEnd={() => {endPanelDrag();setDragOverPanelId(null)}}
                     onDragStart={event=>{
                       if(!editable)return
                       event.stopPropagation()
-                      event.dataTransfer.setData(CATEGORY_DRAG_TYPE,JSON.stringify({id:category.id,itemId:item.id}))
-                      event.dataTransfer.effectAllowed='move'
+                      beginPanelDrag(event,{kind:'action-category',id:category.id,itemId:item.id})
                     }}
-                    onDragOver={allowDrop} onDrop={event=>placeDropped(event,panel.id,item.id)}
+                    onDragOver={event=>allowDrop(event,panel.id)} onDrop={event=>placeDropped(event,panel.id,item.id)}
                     onClick={event=>event.stopPropagation()}>
                     <ActionCategoryView category={category}
                       actions={actions.filter(action=>action.categoryId===category.id)}
@@ -148,13 +154,13 @@ export function GameCanvas({
                     key={item.id}
                     className="panel-item"
                     draggable={editable}
+                    onDragEnd={() => {endPanelDrag();setDragOverPanelId(null)}}
                     onDragStart={event => {
                       if (!editable) return
                       event.stopPropagation()
-                      event.dataTransfer.setData(RESOURCE_DRAG_TYPE, JSON.stringify({ resourceId: resource.id, itemId: item.id }))
-                      event.dataTransfer.effectAllowed = 'move'
+                      beginPanelDrag(event,{kind:'resource',id:resource.id,itemId:item.id})
                     }}
-                    onDragOver={allowDrop}
+                    onDragOver={event=>allowDrop(event,panel.id)}
                     onDrop={event => placeDropped(event, panel.id, item.id)}
                     onClick={event => {
                       if (!editable) return
