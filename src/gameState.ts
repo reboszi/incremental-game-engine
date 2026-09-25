@@ -65,7 +65,7 @@ export function loadGameState(projectId: string, resources: Resource[]): GameSta
     resourceVisibility: Object.fromEntries(resources.map(resource => [
       resource.id,
       typeof savedVisibility[resource.id] === 'boolean'
-        ? savedVisibility[resource.id] : resource.initiallyVisible,
+        ? (savedVisibility[resource.id] as boolean) : resource.initiallyVisible,
     ])),
   }
 }
