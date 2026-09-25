@@ -1,12 +1,20 @@
 import type { DragEvent } from 'react'
-import type { Panel, Resource } from './types'
+import type { ActionCategory, GameAction, GameProject, Panel, Resource } from './types'
 import { PANEL_SLOTS } from './layout'
 import { RESOURCE_DRAG_TYPE, readResourceDrag } from './panelItems'
 import { ResourceView } from './ResourceView'
+import { ActionCategoryView } from './ActionCategoryView'
+import type { GameState } from './gameState'
 
 export function GameCanvas({
   panels,
   resources = [],
+  categories = [],
+  actions = [],
+  gameState,
+  project,
+  onSelectAction,
+  onRunAction,
   resourceValues,
   resourceVisibility,
   selectedPanelId = null,
@@ -17,6 +25,12 @@ export function GameCanvas({
 }: {
   panels: Panel[]
   resources?: Resource[]
+  categories?: ActionCategory[]
+  actions?: GameAction[]
+  gameState?: GameState
+  project?: GameProject
+  onSelectAction?: (id:string)=>void
+  onRunAction?: (id:string)=>void
   resourceValues?: Record<string, number>
   resourceVisibility?: Record<string, boolean>
   selectedPanelId?: string | null
@@ -71,6 +85,17 @@ export function GameCanvas({
             <div className="game-panel-title">{panel.title}</div>
             <div className={`panel-content panel-content--${slot.direction}`}>
               {panel.items.map(item => {
+                if (item.type === 'action-category') {
+                  const category = categories.find(category=>category.id===item.categoryId)
+                  if (!category) return null
+                  return <div key={item.id} className="panel-item panel-category-item"
+                    onClick={event=>event.stopPropagation()}>
+                    <ActionCategoryView category={category}
+                      actions={actions.filter(action=>action.categoryId===category.id)}
+                      editable={editable} gameState={gameState} project={project}
+                      onSelectAction={onSelectAction} onRunAction={onRunAction}/>
+                  </div>
+                }
                 if (item.type !== 'resource') return null
                 const resource = resources.find(resource => resource.id === item.resourceId)
                 if (!resource) return null
