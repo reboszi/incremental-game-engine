@@ -408,3 +408,21 @@ button { color: inherit; }
   overflow: hidden;
 }
 .resource-icon-help { font-size: 11px; color: #8fa18f; }
+
+
+/* Hidden resources either leave no layout node or reserve an explicit placeholder. */
+.panel-item--reserved {
+  min-width: 110px;
+  min-height: 54px;
+  border: 1px dashed rgba(118, 165, 126, .25);
+  border-radius: 4px;
+  background: rgba(75, 115, 83, .04);
+  cursor: default;
+  pointer-events: none;
+}
+.panel-content--vertical .panel-item--reserved { width: 100%; }
+.runtime-visibility-button {
+  min-width: 58px;
+  white-space: nowrap;
+  border-color: #728e73 !important;
+}
