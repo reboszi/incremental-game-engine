@@ -1,9 +1,10 @@
 import type { DragEvent } from 'react'
 import type { ActionCategory, GameAction, GameProject, Panel, Resource } from './types'
 import { PANEL_SLOTS } from './layout'
-import { RESOURCE_DRAG_TYPE, readResourceDrag } from './panelItems'
+import { RESOURCE_DRAG_TYPE, readResourceDrag, ACTION_DRAG_TYPE, CATEGORY_DRAG_TYPE, readActionDrag } from './panelItems'
 import { ResourceView } from './ResourceView'
 import { ActionCategoryView } from './ActionCategoryView'
+import { ActionButton } from './ActionButton'
 import type { GameState } from './gameState'
 
 export function GameCanvas({
@@ -21,6 +22,7 @@ export function GameCanvas({
   onSelectPanel,
   onSelectResource,
   onPlaceResource,
+  onPlacePanelItem,
   editable,
 }: {
   panels: Panel[]
@@ -37,21 +39,30 @@ export function GameCanvas({
   onSelectPanel?: (id: string | null) => void
   onSelectResource?: (id: string) => void
   onPlaceResource?: (resourceId: string, panelId: string, beforeItemId?: string, itemId?: string) => void
+  onPlacePanelItem?: (kind:'action'|'action-category',id:string,panelId:string,beforeItemId?:string,itemId?:string)=>void
   editable: boolean
 }) {
   const allowDrop = (event: DragEvent<HTMLElement>) => {
-    if (!editable || !event.dataTransfer.types.includes(RESOURCE_DRAG_TYPE)) return
+    if (!editable || ![RESOURCE_DRAG_TYPE,ACTION_DRAG_TYPE,CATEGORY_DRAG_TYPE].some(type=>event.dataTransfer.types.includes(type))) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
   }
 
   const placeDropped = (event: DragEvent<HTMLElement>, panelId: string, beforeItemId?: string) => {
     if (!editable) return
-    const drag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
-    if (!drag || !resources.some(resource => resource.id === drag.resourceId)) return
-    event.preventDefault()
-    event.stopPropagation()
-    onPlaceResource?.(drag.resourceId, panelId, beforeItemId, drag.itemId)
+    const resourceDrag = readResourceDrag(event.dataTransfer.getData(RESOURCE_DRAG_TYPE))
+    const actionDrag = readActionDrag(event.dataTransfer.getData(ACTION_DRAG_TYPE))
+    const categoryDrag = readActionDrag(event.dataTransfer.getData(CATEGORY_DRAG_TYPE))
+    if (resourceDrag && resources.some(resource=>resource.id===resourceDrag.resourceId)) {
+      event.preventDefault();event.stopPropagation()
+      onPlaceResource?.(resourceDrag.resourceId,panelId,beforeItemId,resourceDrag.itemId)
+    } else if (actionDrag && actions.some(action=>action.id===actionDrag.id)) {
+      event.preventDefault();event.stopPropagation()
+      onPlacePanelItem?.('action',actionDrag.id,panelId,beforeItemId,actionDrag.itemId)
+    } else if (categoryDrag && categories.some(category=>category.id===categoryDrag.id)) {
+      event.preventDefault();event.stopPropagation()
+      onPlacePanelItem?.('action-category',categoryDrag.id,panelId,beforeItemId,categoryDrag.itemId)
+    }
   }
 
   return (
@@ -85,12 +96,37 @@ export function GameCanvas({
             <div className="game-panel-title">{panel.title}</div>
             <div className={`panel-content panel-content--${slot.direction}`}>
               {panel.items.map(item => {
+                if (item.type === 'action') {
+                  const action = actions.find(action=>action.id===item.actionId)
+                  if (!action || (!editable && !(gameState?.actionVisibility[action.id] ?? action.initiallyVisible))) return null
+                  return <div key={item.id} className="panel-item panel-action-item"
+                    draggable={editable}
+                    onDragStart={event => {
+                      if (!editable) return
+                      event.stopPropagation()
+                      event.dataTransfer.setData(ACTION_DRAG_TYPE,JSON.stringify({id:action.id,itemId:item.id}))
+                      event.dataTransfer.effectAllowed='move'
+                    }}
+                    onDragOver={allowDrop} onDrop={event=>placeDropped(event,panel.id,item.id)}
+                    onClick={event=>event.stopPropagation()}>
+                    <ActionButton action={action} editable={editable} gameState={gameState}
+                      project={project} onSelectAction={onSelectAction} onRunAction={onRunAction}/>
+                  </div>
+                }
                 if (item.type === 'action-category') {
                   const category = categories.find(category=>category.id===item.categoryId)
                   if (!category) return null
                   if (!editable && !actions.some(action => action.categoryId === category.id &&
                     (gameState?.actionVisibility[action.id] ?? action.initiallyVisible))) return null
                   return <div key={item.id} className="panel-item panel-category-item"
+                    draggable={editable}
+                    onDragStart={event=>{
+                      if(!editable)return
+                      event.stopPropagation()
+                      event.dataTransfer.setData(CATEGORY_DRAG_TYPE,JSON.stringify({id:category.id,itemId:item.id}))
+                      event.dataTransfer.effectAllowed='move'
+                    }}
+                    onDragOver={allowDrop} onDrop={event=>placeDropped(event,panel.id,item.id)}
                     onClick={event=>event.stopPropagation()}>
                     <ActionCategoryView category={category}
                       actions={actions.filter(action=>action.categoryId===category.id)}
